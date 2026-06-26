@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { getSupabaseForUser } from '@/lib/supabase-server'
 import { TENDENCIA_SYSTEM, ANALISE_SCHEMA } from '@/lib/tendencia'
 import { diasAtraso } from '@/lib/constants'
@@ -29,7 +28,6 @@ export async function POST(
   const body = await req.json().catch(() => ({}))
   const cliente = body.cliente ?? {}
 
-  // histórico do cliente
   const { data: atvs } = await supabase
     .from('pt_atividades')
     .select('tipo, status, comentario, follow_up_data, created_at')
@@ -43,10 +41,9 @@ export async function POST(
     : null
   const atrasoFU = diasAtraso(ultima?.follow_up_data ?? null)
 
-  // monta o contexto para a IA
   const historico = atividades.length
     ? atividades.map(a =>
-        `- ${fmtBR(a.created_at)} · ${a.tipo} · ${a.status}${a.comentario ? ` · "${a.comentario}"` : ''}${a.follow_up_data ? ` · follow-up agendado p/ ${fmtBR(a.follow_up_data + 'T00:00:00')}` : ''}`
+        `- ${fmtBR(a.created_at)} · ${a.tipo} · ${a.status}${a.comentario ? ` · "${a.comentario}"` : ''}${a.follow_up_data ? ` · follow-up p/ ${fmtBR(a.follow_up_data + 'T00:00:00')}` : ''}`
       ).join('\n')
     : '(nenhum contato registrado ainda)'
 
@@ -64,59 +61,39 @@ ${historico}
 
 Analise este cliente e sugira a próxima abordagem. Seja específico ao que realmente aconteceu.`
 
-  try {
-    const apiKey = await getSecret('ANTHROPIC_API_KEY')
-    const MODEL  = (await getSecret('ANTHROPIC_MODEL')) || 'claude-haiku-4-5'
-    const nexiDbg = await getSecret('NEXI_API_KEY')
-    if (new URL(req.url).searchParams.get('debug') === '1') {
-      return NextResponse.json({
-        debug: true,
-        anthropicLen: apiKey.length,
-        anthropicTail: apiKey.slice(-6),
-        nexiLen: nexiDbg.length,
-        model: MODEL,
-        envSet: !!process.env.ANTHROPIC_API_KEY,
-        envTail: (process.env.ANTHROPIC_API_KEY || '').slice(-6),
-      })
-    }
-    if (new URL(req.url).searchParams.get('debug') === '2') {
-      // raw fetch com a key do getSecret
-      let rawStatus = 0, rawBody = ''
-      try {
-        const rr = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          body: JSON.stringify({ model: MODEL, max_tokens: 10, messages: [{ role: 'user', content: 'oi' }] }),
-        })
-        rawStatus = rr.status; rawBody = (await rr.text()).slice(0, 120)
-      } catch (e) { rawBody = e instanceof Error ? e.message : 'erro' }
-      // SDK com a mesma key
-      let sdkStatus = 0, sdkMsg = ''
-      try {
-        const cli = new Anthropic({ apiKey })
-        await cli.messages.create({ model: MODEL, max_tokens: 10, messages: [{ role: 'user', content: 'oi' }] } as Anthropic.MessageCreateParamsNonStreaming)
-        sdkStatus = 200
-      } catch (err) {
-        const e = err as { status?: number; message?: string }
-        sdkStatus = e.status ?? -1; sdkMsg = (e.message || '').slice(0, 120)
-      }
-      return NextResponse.json({ keyTail: apiKey.slice(-6), rawStatus, rawBody, sdkStatus, sdkMsg })
-    }
-    const anthropic = new Anthropic({ apiKey })
-    const msg = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      system: TENDENCIA_SYSTEM,
-      messages: [{ role: 'user', content: userPrompt }],
-      output_config: { format: { type: 'json_schema', schema: ANALISE_SCHEMA } },
-    } as Anthropic.MessageCreateParamsNonStreaming)
+  // Chamada direta à API Anthropic (fetch) — evita o SDK pegar key errada do env no serverless.
+  const apiKey = await getSecret('ANTHROPIC_API_KEY')
+  const model  = (await getSecret('ANTHROPIC_MODEL')) || 'claude-haiku-4-5'
 
-    if (msg.stop_reason === 'refusal') {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      headers: {
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type':      'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        system: TENDENCIA_SYSTEM,
+        messages: [{ role: 'user', content: userPrompt }],
+        output_config: { format: { type: 'json_schema', schema: ANALISE_SCHEMA } },
+      }),
+    })
+
+    if (!res.ok) {
+      const detalhe = (await res.text().catch(() => '')).slice(0, 200)
+      return NextResponse.json({ error: `Falha na análise (${res.status})`, detalhe }, { status: 502 })
+    }
+
+    const data = await res.json()
+    if (data.stop_reason === 'refusal') {
       return NextResponse.json({ error: 'Análise indisponível para este conteúdo' }, { status: 422 })
     }
 
-    const textBlock = msg.content.find(b => b.type === 'text')
-    const raw = textBlock && 'text' in textBlock ? textBlock.text : '{}'
+    const textBlock = (data.content ?? []).find((b: { type: string }) => b.type === 'text')
+    const raw = textBlock?.text ?? '{}'
     const analise = JSON.parse(raw)
 
     return NextResponse.json({ analise, meta: { diasOcioso, totalAtividades: atividades.length } })
