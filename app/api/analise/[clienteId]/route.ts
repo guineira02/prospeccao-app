@@ -75,8 +75,19 @@ Analise este cliente e sugira a próxima abordagem. Seja específico ao que real
         anthropicTail: apiKey.slice(-6),
         nexiLen: nexiDbg.length,
         model: MODEL,
-        envFallback: !!process.env.ANTHROPIC_API_KEY,
+        envSet: !!process.env.ANTHROPIC_API_KEY,
+        envTail: (process.env.ANTHROPIC_API_KEY || '').slice(-6),
       })
+    }
+    if (new URL(req.url).searchParams.get('debug') === '2') {
+      try {
+        const cli = new Anthropic({ apiKey })
+        const m = await cli.messages.create({ model: MODEL, max_tokens: 10, messages: [{ role: 'user', content: 'oi' }] } as Anthropic.MessageCreateParamsNonStreaming)
+        return NextResponse.json({ ok: true, txt: m.content })
+      } catch (err) {
+        const e = err as { name?: string; status?: number; message?: string; error?: unknown }
+        return NextResponse.json({ debug2: true, name: e.name, status: e.status, message: (e.message || '').slice(0, 200), body: e.error })
+      }
     }
     const anthropic = new Anthropic({ apiKey })
     const msg = await anthropic.messages.create({
