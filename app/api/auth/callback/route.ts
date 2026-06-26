@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   const res = new NextResponse(
     `<html><head><meta http-equiv="refresh" content="0;url=/dashboard"></head><body>Autenticado, redirecionando...</body></html>`,
-    { status: 200, headers: { 'Content-Type': 'text/html' } }
+    { status: 200, headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
   )
   res.cookies.set('nexi_token', access_token, {
     httpOnly: true,
