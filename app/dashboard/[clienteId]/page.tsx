@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import { CustomSelect } from '@/app/components/CustomSelect'
 
 interface Atividade {
   id:             string
@@ -403,25 +404,12 @@ export default function TimelinePage() {
               <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>
                 Status
               </label>
-              <select
+              <CustomSelect
                 value={atStatus}
-                onChange={e => setAtStatus(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: '#15161b',
-                  border: '1px solid #353740',
-                  borderRadius: 10,
-                  color: atStatus ? '#fff' : '#81869e',
-                  fontSize: 13,
-                  outline: 'none',
-                  fontFamily: 'Montserrat, sans-serif',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="">Selecionar status...</option>
-                {STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+                onChange={setAtStatus}
+                options={[...STATUS]}
+                placeholder="Selecionar status..."
+              />
             </div>
 
             {/* Comentário */}

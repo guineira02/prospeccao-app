@@ -10,20 +10,15 @@ const ORBS = [
   { w: 400, h: 400, top: '60%',  left: '30%',  color: 'rgba(9,188,138,0.08)',  dur: '11s', tx: '35px',  ty: '-20px', tx2: '-30px', ty2: '30px'  },
 ]
 
-const BOLTS = [
-  { top: '12%', left: '8%',   r: '-15deg', size: 64 },
-  { top: '62%', left: '6%',   r: '20deg',  size: 52 },
-  { top: '30%', left: '28%',  r: '-8deg',  size: 60 },
-  { top: '72%', left: '38%',  r: '30deg',  size: 44 },
+/* Ghost logo Nexi — opacity max 0.065, filter blur */
+const GHOSTS = [
+  { size: 260, top: '5%',  left: '44%', opacity: 0.062, dur: '18s', delay: '0s',    blur: 3, tx: '20px',  ty: '-25px', tx2: '-15px', ty2: '20px' },
+  { size: 120, top: '62%', left: '14%', opacity: 0.05,  dur: '14s', delay: '3s',    blur: 2, tx: '-18px', ty: '22px',  tx2: '12px',  ty2: '-18px' },
+  { size: 72,  top: '18%', left: '22%', opacity: 0.04,  dur: '11s', delay: '1.5s',  blur: 2, tx: '14px',  ty: '-16px', tx2: '-10px', ty2: '12px' },
+  { size: 72,  top: '78%', left: '52%', opacity: 0.04,  dur: '16s', delay: '5s',    blur: 2, tx: '-12px', ty: '18px',  tx2: '16px',  ty2: '-12px' },
 ]
 
-function BoltSVG({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-      <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#09bc8a" />
-    </svg>
-  )
-}
+const NEXI_PATH = 'M1.5 36.3747L27.8064 49.0643V66.12C27.8064 70.1809 27.8064 74.9533 27.4992 78.2018C31.17 76.3761 37.4409 73.5302 42.334 71.2979L69.4033 59.1153L1.5 27.2394V2.36401L94.0286 45.9194C99.9925 48.7615 105.5 52.9236 105.5 59.525C105.5 66.1264 100.455 69.9826 94.0286 72.926L1.5 115.364V36.3747Z'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -84,20 +79,26 @@ export default function LoginPage() {
         }} />
       ))}
 
-      {/* Bolt icons — only in left area */}
-      {BOLTS.map((bolt, i) => (
+      {/* Ghost logo Nexi — discretos, opacity < 0.07 */}
+      {GHOSTS.map((g, i) => (
         <div key={i} style={{
           position: 'absolute',
-          top: bolt.top,
-          left: bolt.left,
+          top: g.top,
+          left: g.left,
           pointerEvents: 'none',
-          opacity: 0.22,
-          zIndex: 2,
-          animation: `boltDrift 6s ease-in-out infinite`,
-          animationDelay: `${i * 1.2}s`,
-          ['--r' as string]: bolt.r,
+          opacity: g.opacity,
+          zIndex: 1,
+          filter: `blur(${g.blur}px)`,
+          animation: `orbFloat ${g.dur} ease-in-out infinite`,
+          animationDelay: g.delay,
+          ['--tx' as string]: g.tx,
+          ['--ty' as string]: g.ty,
+          ['--tx2' as string]: g.tx2,
+          ['--ty2' as string]: g.ty2,
         }}>
-          <BoltSVG size={bolt.size} />
+          <svg width={g.size} height={Math.round(g.size * 118 / 107)} viewBox="0 0 107 118" fill="none">
+            <path d={NEXI_PATH} fill="#09bc8a" />
+          </svg>
         </div>
       ))}
 
@@ -122,8 +123,8 @@ export default function LoginPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 0 20px rgba(9,188,138,0.4)',
             }}>
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18" />
+              <svg width="18" height="20" viewBox="0 0 107 118" fill="none">
+                <path d={NEXI_PATH} fill="#0d1e18" />
               </svg>
             </div>
             <span style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px' }}>
@@ -171,7 +172,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — only mounted when split=true, animates in */}
+      {/* Right panel — montado só quando split=true */}
       {split && (
         <div style={{
           flex: '0 0 45%',

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { CustomSelect } from '@/app/components/CustomSelect'
 
 interface FuRow {
   nome:   string
@@ -77,14 +78,12 @@ function RegModal({ onClose }: { onClose: () => void }) {
 
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>Status</label>
-          <select value={status} onChange={e => setStatus(e.target.value)} style={{
-            width: '100%', padding: '9px 12px', background: '#15161b',
-            border: '1px solid #353740', borderRadius: 10, color: status ? '#fff' : '#81869e',
-            fontSize: 13, outline: 'none', fontFamily: 'Montserrat, sans-serif',
-          }}>
-            <option value="">Selecionar...</option>
-            {STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <CustomSelect
+            value={status}
+            onChange={setStatus}
+            options={[...STATUS]}
+            placeholder="Selecionar..."
+          />
         </div>
 
         <div style={{ marginBottom: '1.25rem' }}>
