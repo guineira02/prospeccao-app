@@ -46,3 +46,6 @@ Thumbs.db
 
 # Local Netlify folder
 .netlify
+
+# Session notes (contain credentials — local only)
+SESSAO_*.md

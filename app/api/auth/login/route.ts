@@ -1,65 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { createClient } from '@supabase/supabase-js'
 
 export async function POST(req: NextRequest) {
-  const { email, senha } = await req.json()
-  if (!email || !senha) {
-    return NextResponse.json({ error: 'Email e senha obrigatórios' }, { status: 400 })
+  let email: string, password: string
+  try {
+    const body = await req.json()
+    email = body.email
+    password = body.password
+  } catch {
+    return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  )
-  const admin = getSupabaseAdmin()
+  if (!email?.trim() || !password?.trim()) {
+    return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
+  }
 
-  const { data: signIn, error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password: senha,
-  })
-
-  let session = signIn?.session
-
-  if (signInError) {
-    const { error: createError } = await admin.auth.admin.createUser({
-      email,
-      password: senha,
-      email_confirm: true,
-      user_metadata: {
-        nome: email.split('@')[0],
-        cargo: 'Agente Comercial',
-        nexi_id: email,
-      },
+  let bubbleRes: Response
+  try {
+    bubbleRes = await fetch(`${process.env.BUBBLE_OAUTH_BASE}/wf/oauth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), password, stay: 'yes' }),
     })
-    if (createError) {
-      return NextResponse.json({ error: 'Erro ao criar conta' }, { status: 500 })
-    }
-    const { data: retry } = await supabase.auth.signInWithPassword({ email, password: senha })
-    session = retry?.session
+  } catch (e) {
+    console.error('Bubble wf/oauth network error:', e)
+    return NextResponse.json({ error: 'network_error' }, { status: 502 })
   }
 
-  if (!session) {
-    return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
+  if (!bubbleRes.ok) {
+    const body = await bubbleRes.text()
+    console.error('Bubble wf/oauth failed:', bubbleRes.status, body)
+    return NextResponse.json({ error: 'invalid_credentials' }, { status: 401 })
+  }
+
+  let data: Record<string, unknown>
+  try {
+    data = await bubbleRes.json()
+  } catch {
+    console.error('Bubble wf/oauth non-JSON 200 response')
+    return NextResponse.json({ error: 'invalid_credentials' }, { status: 401 })
+  }
+
+  // Bubble may return HTTP 200 with { status: "error" } for bad credentials
+  if ((data as { status?: string }).status === 'error') {
+    return NextResponse.json({ error: 'invalid_credentials' }, { status: 401 })
+  }
+
+  const access_token =
+    (data.response as Record<string, unknown>)?.access_token as string ??
+    (data.response as Record<string, unknown>)?.token as string ??
+    data.access_token as string ??
+    data.token as string
+
+  if (!access_token) {
+    console.error('No access_token in Bubble response:', data)
+    return NextResponse.json({ error: 'no_token' }, { status: 500 })
+  }
+
+  // Resolve user_id via OAuth_Prospeccao
+  let bubble_user_id: string | null = null
+  try {
+    const meRes = await fetch(`${process.env.NEXI_API_BASE}/wf/OAuth_Prospeccao`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
+    if (meRes.ok) {
+      const meData = await meRes.json()
+      bubble_user_id = meData.response?.user_id ?? null
+      console.log('OAuth_Prospeccao resolved user_id:', bubble_user_id)
+    } else {
+      console.error('OAuth_Prospeccao failed:', meRes.status, await meRes.text())
+    }
+  } catch (e) {
+    console.error('OAuth_Prospeccao error:', e)
+  }
+
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
   }
 
   const res = NextResponse.json({ ok: true })
-
-  res.cookies.set('sb-access-token', session.access_token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 8,
-    path: '/',
-  })
-  res.cookies.set('sb-refresh-token', session.refresh_token!, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
-  })
-
+  res.cookies.set('nexi_token', access_token, cookieOpts)
+  if (bubble_user_id) {
+    res.cookies.set('nexi_user_id', bubble_user_id, cookieOpts)
+  }
   return res
 }
