@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
   const tokenData = await tokenRes.json()
   console.log('Bubble token response:', JSON.stringify(tokenData))
   const access_token = tokenData.access_token ?? tokenData.token ?? tokenData.access_Token
+  const bubble_user_id = tokenData.user_id ?? tokenData.userId ?? null
 
   if (!access_token) {
     console.error('No access_token in response:', tokenData)
@@ -40,12 +41,16 @@ export async function GET(req: NextRequest) {
     `<html><head><meta http-equiv="refresh" content="0;url=/dashboard"></head><body>Autenticado, redirecionando...</body></html>`,
     { status: 200, headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
   )
-  res.cookies.set('nexi_token', access_token, {
+  const cookieOpts = {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     path:     '/',
     maxAge:   60 * 60 * 24 * 7,
-  })
+  }
+  res.cookies.set('nexi_token', access_token, cookieOpts)
+  if (bubble_user_id) {
+    res.cookies.set('nexi_user_id', bubble_user_id, cookieOpts)
+  }
   return res
 }

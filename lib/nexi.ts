@@ -25,17 +25,37 @@ export interface NexiCliente {
   Status?:             string
 }
 
-export async function nexiGetCurrentUser(nexiToken: string): Promise<{ _id: string; [k: string]: unknown } | null> {
-  const hit = _userCache.get(nexiToken)
+export async function nexiGetCurrentUser(
+  nexiToken: string,
+  userId?: string,
+): Promise<{ _id: string; [k: string]: unknown } | null> {
+  const cacheKey = userId ?? nexiToken
+  const hit = _userCache.get(cacheKey)
   if (hit && hit.exp > Date.now()) return hit.user
   try {
-    const res = await fetch(`${NEXI_BASE}/obj/user`, {
-      headers: { Authorization: `Bearer ${nexiToken}` },
-    })
-    if (!res.ok) { _userCache.set(nexiToken, { user: null, exp: Date.now() + 10_000 }); return null }
-    const data = await res.json()
-    const user = data.response?.results?.[0] ?? data.response ?? null
-    _userCache.set(nexiToken, { user, exp: Date.now() + 60_000 })
+    let user: ({ _id: string; [k: string]: unknown }) | null = null
+
+    if (userId) {
+      // Direct lookup by Bubble user ID (from OAuth token response)
+      const res = await fetch(`${NEXI_BASE}/obj/user/${userId}`, {
+        headers: { Authorization: `Bearer ${NEXI_KEY}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        user = data.response ?? null
+      }
+    } else {
+      // Fallback: list endpoint — returns first user (unreliable when DB has multiple users)
+      const res = await fetch(`${NEXI_BASE}/obj/user`, {
+        headers: { Authorization: `Bearer ${nexiToken}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        user = data.response?.results?.[0] ?? data.response ?? null
+      }
+    }
+
+    _userCache.set(cacheKey, { user, exp: Date.now() + (user ? 60_000 : 10_000) })
     return user
   } catch {
     return null

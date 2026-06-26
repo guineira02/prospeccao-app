@@ -5,7 +5,8 @@ export async function GET(req: NextRequest) {
   const nexiToken = req.cookies.get('nexi_token')?.value
   if (!nexiToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const user = await nexiGetCurrentUser(nexiToken)
+  const nexiUserId = req.cookies.get('nexi_user_id')?.value
+  const user = await nexiGetCurrentUser(nexiToken, nexiUserId)
   if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const nome  = (user['Nome'] as string) ?? 'Agente'
