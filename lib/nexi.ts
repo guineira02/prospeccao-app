@@ -1,10 +1,17 @@
-const NEXI_BASE = process.env.NEXI_API_BASE!   // https://nexiplay.com/api/1.1
-const NEXI_KEY  = process.env.NEXI_API_KEY!
+import { getSecret } from './secrets'
 
-function nexiHeaders() {
+// Config da Nexi vem do Supabase (app_secrets), com fallback pro env.
+async function nexiCfg() {
+  return {
+    base: await getSecret('NEXI_API_BASE'),
+    key:  await getSecret('NEXI_API_KEY'),
+  }
+}
+
+function nexiHeaders(key: string) {
   return {
     'Content-Type':  'application/json',
-    Authorization:   `Bearer ${NEXI_KEY}`,
+    Authorization:   `Bearer ${key}`,
   }
 }
 
@@ -22,9 +29,10 @@ export async function nexiLogin(
   senha: string
 ): Promise<NexiLoginResult | null> {
   try {
-    const res = await fetch(`${NEXI_BASE}/wf/login_mobile`, {
+    const { base, key } = await nexiCfg()
+    const res = await fetch(`${base}/wf/login_mobile`, {
       method:  'POST',
-      headers: nexiHeaders(),
+      headers: nexiHeaders(key),
       body:    JSON.stringify({ email, senha }),
       cache:   'no-store',
     })
@@ -137,9 +145,10 @@ export async function nexiAtualizarCliente(
       if (v) body[k] = v
     }
 
-    const res = await fetch(`${NEXI_BASE}/wf/atualizar_cliente_prospeccao`, {
+    const { base, key } = await nexiCfg()
+    const res = await fetch(`${base}/wf/atualizar_cliente_prospeccao`, {
       method:  'POST',
-      headers: nexiHeaders(),
+      headers: nexiHeaders(key),
       body:    JSON.stringify(body),
       cache:   'no-store',
     })
@@ -151,9 +160,10 @@ export async function nexiAtualizarCliente(
 
 async function fetchClientesRaw(userId: string): Promise<NexiClienteRaw[]> {
   try {
-    const res = await fetch(`${NEXI_BASE}/wf/clientes_mobile`, {
+    const { base, key } = await nexiCfg()
+    const res = await fetch(`${base}/wf/clientes_mobile`, {
       method:  'POST',
-      headers: nexiHeaders(),
+      headers: nexiHeaders(key),
       body:    JSON.stringify({ user_id: userId }),
       cache:   'no-store',
     })

@@ -86,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </svg>
           </div>
           <span style={{ fontWeight: 700, fontSize: 14, color: '#fff', letterSpacing: '-0.2px' }}>
-            Prospecção
+            Prospecção Nexi
           </span>
         </div>
 

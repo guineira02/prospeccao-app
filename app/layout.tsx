@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Prospecção — Nexi',
+  title: 'Prospecção Nexi',
   description: 'Sistema de linha do tempo de prospecção comercial',
 }
 

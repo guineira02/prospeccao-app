@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { nexiClientes, type Cliente } from '@/lib/nexi'
 import { diasAtraso } from '@/lib/constants'
+import { getSecret } from '@/lib/secrets'
 
 // Disparo diário (chamado pelo n8n). Protegido por CRON_SECRET.
 // NÃO envia direto — devolve, por agente, o número de WhatsApp + a mensagem pronta.
@@ -25,13 +26,13 @@ function montarMensagem(nome: string, itens: { nome: string; uf: string; diasAtr
 }
 
 export async function POST(req: NextRequest) {
-  const secret = process.env.CRON_SECRET
+  const secret = await getSecret('CRON_SECRET')
   const enviado = req.headers.get('x-cron-secret') || new URL(req.url).searchParams.get('secret')
   if (secret && enviado !== secret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const appUrl = process.env.APP_URL || new URL(req.url).origin
+  const appUrl = (await getSecret('APP_URL')) || new URL(req.url).origin
   const admin = getSupabaseAdmin()
 
   const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 })
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
   }
 
   // dispara cada WhatsApp no webhook n8n (Evolution send-text)
-  const webhook = process.env.N8N_WEBHOOK_URL
+  const webhook = await getSecret('N8N_WEBHOOK_URL')
   let disparados = 0
   const erros: string[] = []
   if (webhook) {

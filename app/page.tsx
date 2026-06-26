@@ -128,7 +128,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <span style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px' }}>
-              Prospecção
+              Prospecção Nexi
             </span>
           </div>
 

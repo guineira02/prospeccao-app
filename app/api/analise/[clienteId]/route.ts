@@ -3,9 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getSupabaseForUser } from '@/lib/supabase-server'
 import { TENDENCIA_SYSTEM, ANALISE_SCHEMA } from '@/lib/tendencia'
 import { diasAtraso } from '@/lib/constants'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5'
+import { getSecret } from '@/lib/secrets'
 
 interface Atividade {
   tipo: string; status: string; comentario: string | null
@@ -67,6 +65,9 @@ ${historico}
 Analise este cliente e sugira a próxima abordagem. Seja específico ao que realmente aconteceu.`
 
   try {
+    const apiKey = await getSecret('ANTHROPIC_API_KEY')
+    const MODEL  = (await getSecret('ANTHROPIC_MODEL')) || 'claude-haiku-4-5'
+    const anthropic = new Anthropic({ apiKey })
     const msg = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 1024,
