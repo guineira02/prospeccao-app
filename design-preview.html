@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Prospecção — Preview de Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#15161b;--surface:#1e1f24;--raised:#24262e;
+  --brand:#09bc8a;--brand-lt:#00e5a0;
+  --brand-dim:rgba(9,188,138,.12);--brand-glow:rgba(9,188,138,.22);
+  --border:rgba(255,255,255,.08);--border-s:#353740;
+  --tx:#f0f1f5;--tx2:#81869e;--tx3:#4a4f64;
+  --red:#ef4444;--amber:#f59e0b;--blue:#60a5fa;--indigo:#6366f1;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Montserrat',-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* ── DEMO NAV ── */
+.dnav{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(21,22,27,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(16px)}
+.dnav-lbl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-right:6px}
+.dnav-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--border-s);background:transparent;color:var(--tx2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+.dnav-btn:hover{background:var(--raised);color:var(--tx)}
+.dnav-btn.on{background:var(--brand-dim);border-color:var(--brand);color:var(--brand)}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;padding-top:40px;flex-direction:column}
+.screen.on{display:flex}
+
+/* ══════════════════════════════════
+   LOGIN
+══════════════════════════════════ */
+.login-wrap{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg)}
+
+.orb{position:absolute;border-radius:50%;pointer-events:none;will-change:transform}
+.orb-1{width:700px;height:700px;top:-220px;right:-180px;background:radial-gradient(circle,rgba(9,188,138,.11) 0%,transparent 65%);animation:fl1 14s ease-in-out infinite}
+.orb-2{width:560px;height:560px;bottom:-180px;left:-140px;background:radial-gradient(circle,rgba(9,188,138,.08) 0%,transparent 65%);animation:fl2 18s ease-in-out infinite}
+.orb-3{width:320px;height:320px;top:35%;left:18%;background:radial-gradient(circle,rgba(99,102,241,.07) 0%,transparent 70%);animation:fl3 10s ease-in-out infinite}
+@keyframes fl1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-40px,28px) scale(1.06)}}
+@keyframes fl2{0%,100%{transform:translate(0,0)}50%{transform:translate(44px,-28px) scale(1.08)}}
+@keyframes fl3{0%,100%{transform:translate(0,0)}50%{transform:translate(22px,38px)}}
+
+.dot-grid{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='28' height='28' viewBox='0 0 28 28' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='14' cy='14' r='1' fill='%2309bc8a' fill-opacity='0.07'/%3E%3C/svg%3E");pointer-events:none}
+
+.login-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:36px}
+
+.logo-lockup{display:flex;align-items:center;gap:12px}
+.logo-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-lt));display:flex;align-items:center;justify-content:center;box-shadow:0 0 28px var(--brand-glow),0 0 0 1px rgba(9,188,138,.2)}
+.logo-text .name{font-size:19px;font-weight:600;letter-spacing:-.025em}
+.logo-text .sub{font-size:12px;color:var(--tx2);margin-top:2px}
+
+.login-card{width:360px;background:rgba(30,31,36,.85);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:36px;backdrop-filter:blur(28px);box-shadow:0 28px 72px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04)}
+.login-card h1{font-size:21px;font-weight:600;letter-spacing:-.03em;margin-bottom:6px}
+.login-card p{font-size:14px;color:var(--tx2);margin-bottom:28px;line-height:1.5}
+
+.btn-cta{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-lt) 100%);color:#0d1e18;font-size:14px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 18px rgba(9,188,138,.32);font-family:inherit;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-cta:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(9,188,138,.44)}
+.btn-cta:active{transform:translateY(0)}
+
+/* split-screen login */
+.login-inner{transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.login-card{transition:opacity .3s ease,transform .3s ease}
+.login-wrap.split .login-card{opacity:0;transform:translateY(16px);pointer-events:none}
+.login-wrap.split .login-inner{transform:translateX(-80px)}
+
+.login-right{
+  position:absolute;right:0;top:0;bottom:0;
+  width:420px;
+  background:rgba(24,25,30,.97);
+  border-left:1px solid var(--border);
+  backdrop-filter:blur(24px);
+  display:flex;align-items:center;justify-content:center;
+  padding:52px;z-index:5;
+  transform:translateX(100%);
+  transition:transform .5s cubic-bezier(.4,0,.2,1);
+}
+.login-wrap.split .login-right{transform:translateX(0)}
+
+.lr-head{margin-bottom:32px}
+.lr-head h2{font-size:20px;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
+.lr-head p{font-size:13px;color:var(--tx2);line-height:1.5}
+.lr-back{background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;font-family:inherit;padding:0;margin-bottom:24px;display:flex;align-items:center;gap:5px;transition:color .15s}
+.lr-back:hover{color:var(--tx2)}
+
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);margin-bottom:6px}
+.fld input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border-s);background:#15161b;color:var(--tx);font-size:14px;outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+.fld input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-dim)}
+.fld input::placeholder{color:var(--tx3)}
+
+.btn-submit{width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--brand),var(--brand-lt));color:#0d1e18;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;transition:opacity .15s,transform .15s;box-shadow:0 4px 16px rgba(9,188,138,.28)}
+.btn-submit:hover{opacity:.9;transform:translateY(-1px)}
+
+@keyframes fade-in{to{opacity:1}}
+@keyframes modal-rise{from{opacity:0;transform:scale(.96) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* ══════════════════════════════════
+   APP SHELL
+══════════════════════════════════ */
+.shell{flex:1;display:flex}
+
+.sidebar{width:216px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:0 20px 22px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.sb-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-lt));display:flex;align-items:center;justify-content:center}
+.sb-name{font-size:14px;font-weight:600;letter-spacing:-.015em}
+
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;margin:1px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--tx2);border:1px solid transparent;transition:all .15s}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--tx)}
+.nav-item.on{background:var(--brand-dim);border-color:rgba(9,188,138,.2);color:var(--brand)}
+.nav-ic{width:15px;height:15px;flex-shrink:0}
+
+.sb-foot{margin-top:auto;padding:16px 20px 0;border-top:1px solid var(--border)}
+.agent-row{display:flex;align-items:center;gap:10px}
+.agent-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.agent-name{font-size:13px;font-weight:500}
+.agent-role{font-size:11px;color:var(--tx2)}
+
+.main{flex:1;overflow-y:auto;overflow-x:hidden}
+
+/* ══════════════════════════════════
+   CLIENTES
+══════════════════════════════════ */
+.page-head{padding:26px 32px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between}
+.page-h1{font-size:22px;font-weight:700;letter-spacing:-.035em}
+.page-sub{font-size:12px;color:var(--tx2);margin-top:3px}
+.head-stats{display:flex;gap:24px}
+.h-stat .n{font-size:26px;font-weight:300;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.h-stat .l{font-size:10px;color:var(--tx2);letter-spacing:.04em;text-transform:uppercase}
+.n-green{background:linear-gradient(135deg,var(--brand),var(--brand-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.n-red{background:linear-gradient(135deg,var(--red),#f87171);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.filters{padding:12px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border-s);background:transparent;color:var(--tx2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+.chip:hover{background:var(--raised);color:var(--tx)}
+.chip.on{background:var(--brand-dim);border-color:var(--brand);color:var(--brand)}
+.chip-sep{width:1px;height:18px;background:var(--border);margin:0 2px}
+
+.cl-list{padding:16px 32px;display:flex;flex-direction:column;gap:9px}
+
+.cl-card{display:flex;overflow:hidden;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;position:relative}
+.cl-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.14);box-shadow:0 10px 28px rgba(0,0,0,.45)}
+.cl-card:hover .cl-arr{opacity:1;transform:translateX(0)}
+
+.stripe{width:4px;flex-shrink:0}
+.s-green{background:var(--brand)}
+.s-amber{background:var(--amber)}
+.s-blue{background:var(--blue)}
+.s-red{background:var(--red)}
+.s-muted{background:var(--border-s)}
+
+.cl-body{flex:1;padding:15px 20px;display:flex;align-items:center;gap:16px;min-width:0}
+.cl-main{flex:1;min-width:0}
+.cl-co{font-size:15px;font-weight:600;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.cl-meta{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx2);flex-wrap:wrap}
+.cl-last{font-size:12px;color:var(--tx2);margin-top:5px}
+.cl-badges{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.cl-arr{margin-right:14px;color:var(--tx3);opacity:0;transform:translateX(-6px);transition:all .2s;align-self:center;flex-shrink:0}
+
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.02em}
+.bdg-green{background:rgba(9,188,138,.14);color:var(--brand)}
+.bdg-blue{background:rgba(96,165,250,.14);color:var(--blue)}
+.bdg-amber{background:rgba(245,158,11,.14);color:var(--amber)}
+.bdg-red{background:rgba(239,68,68,.14);color:var(--red);animation:pulse-red 2.2s ease-in-out infinite}
+.bdg-muted{background:rgba(255,255,255,.06);color:var(--tx2)}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}55%{box-shadow:0 0 0 4px rgba(239,68,68,.12)}}
+
+/* ══════════════════════════════════
+   TIMELINE
+══════════════════════════════════ */
+.tl-wrap{flex:1;display:flex}
+
+.tl-left{width:298px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.tl-hd{padding:22px 24px;border-bottom:1px solid var(--border)}
+.tl-back{background:none;border:none;color:var(--tx2);font-size:12px;cursor:pointer;font-family:inherit;padding:0;margin-bottom:10px;display:flex;align-items:center;gap:4px;transition:color .15s}
+.tl-back:hover{color:var(--tx)}
+.tl-co{font-size:18px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px}
+.tl-co-sub{font-size:12px;color:var(--tx2)}
+.tl-status{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}
+
+.tl-sec{padding:16px 24px;border-bottom:1px solid var(--border)}
+.tl-sec-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin-bottom:12px}
+.tl-f{margin-bottom:9px}
+.tl-f .lbl{font-size:11px;color:var(--tx2);margin-bottom:2px}
+.tl-f .val{font-size:13px;font-weight:500;line-height:1.4}
+
+.btn-reg{display:block;width:calc(100% - 48px);margin:auto 24px 24px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--brand),var(--brand-lt));color:#0d1e18;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 18px rgba(9,188,138,.28);font-family:inherit;letter-spacing:-.01em;margin-top:auto}
+.btn-reg:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(9,188,138,.38)}
+
+.tl-right{flex:1;padding:28px 32px;overflow-y:auto}
+.tl-section-hd{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);margin-bottom:22px;display:flex;align-items:center;gap:10px}
+.tl-section-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* timeline entries */
+.tl-entries{position:relative;display:flex;flex-direction:column}
+/* flowing energy line */
+.tl-entries::before{content:'';position:absolute;left:19px;top:28px;bottom:28px;width:2px;background:linear-gradient(to bottom,transparent 0%,var(--brand) 20%,rgba(9,188,138,.35) 50%,var(--brand) 80%,transparent 100%);background-size:100% 300%;animation:tl-flow 4s linear infinite;border-radius:2px}
+@keyframes tl-flow{0%{background-position:0 -100%}100%{background-position:0 200%}}
+
+.tl-entry{display:flex;gap:18px;padding-bottom:26px;position:relative;opacity:0;animation:ei .35s ease forwards}
+.tl-entry:nth-child(1){animation-delay:.06s}
+.tl-entry:nth-child(2){animation-delay:.14s}
+.tl-entry:nth-child(3){animation-delay:.22s}
+.tl-entry:nth-child(4){animation-delay:.3s}
+.tl-entry:nth-child(5){animation-delay:.38s}
+@keyframes ei{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+
+.tl-node{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:2px solid;position:relative;z-index:1;cursor:default;transition:transform .2s,box-shadow .2s}
+.tl-node:hover{transform:scale(1.12)}
+.nd-call{background:rgba(9,188,138,.1);border-color:var(--brand);color:var(--brand)}
+.nd-call:hover{box-shadow:0 0 18px rgba(9,188,138,.42)}
+.nd-email{background:rgba(96,165,250,.1);border-color:var(--blue);color:var(--blue)}
+.nd-email:hover{box-shadow:0 0 18px rgba(96,165,250,.42)}
+.nd-meet{background:rgba(99,102,241,.1);border-color:var(--indigo);color:var(--indigo)}
+.nd-meet:hover{box-shadow:0 0 18px rgba(99,102,241,.42)}
+.nd-prop{background:rgba(245,158,11,.1);border-color:var(--amber);color:var(--amber)}
+.nd-prop:hover{box-shadow:0 0 18px rgba(245,158,11,.42)}
+
+.tl-cnt{flex:1;padding-top:5px}
+.tl-cnt-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.tl-bdgs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tl-when{font-size:11px;color:var(--tx3);flex-shrink:0}
+.tl-note{font-size:13px;color:var(--tx2);line-height:1.55;padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;margin-bottom:8px}
+.tl-fu{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2)}
+.tl-fu svg{flex-shrink:0}
+.tl-fu strong{color:var(--tx)}
+
+/* register modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-box{background:var(--surface);border:1px solid var(--border-s);border-radius:20px;padding:24px;width:100%;animation:modal-rise .25s cubic-bezier(.4,0,.2,1) both}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:15px;font-weight:700;color:var(--tx)}
+.modal-x{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--tx2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit}
+.modal-x:hover{background:var(--raised);color:var(--tx)}
+.tipo-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tipo-btn{padding:6px 12px;border-radius:20px;border:1px solid var(--border-s);background:transparent;color:var(--tx2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+.tipo-btn:hover:not(.on){background:var(--raised);color:var(--tx)}
+.tipo-btn.on{border-color:var(--brand);background:var(--brand-dim);color:var(--brand)}
+.reg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.fld-lbl{display:block;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);margin-bottom:6px}
+.fld-inp{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border-s);background:#15161b;color:var(--tx);font-size:13px;outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+.fld-inp:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-dim)}
+select.fld-inp{cursor:pointer}
+textarea.fld-inp{resize:none;height:78px}
+.reg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+.btn-cancel{padding:9px 18px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--tx2);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-cancel:hover{background:var(--raised);color:var(--tx)}
+.btn-save{padding:9px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--brand),var(--brand-lt));color:#0d1e18;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* ══════════════════════════════════
+   PAINEL
+══════════════════════════════════ */
+.painel-body{padding:28px 32px}
+.painel-h1{font-size:22px;font-weight:700;letter-spacing:-.035em;margin-bottom:4px}
+.painel-sub{font-size:13px;color:var(--tx2);margin-bottom:28px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:32px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,0,0,.5)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0}
+.kpi-g::before{background:linear-gradient(90deg,var(--brand),var(--brand-lt))}
+.kpi-r::before{background:linear-gradient(90deg,var(--red),#f87171)}
+.kpi-b::before{background:linear-gradient(90deg,var(--blue),#93c5fd)}
+.kpi-a::before{background:linear-gradient(90deg,var(--amber),#fcd34d)}
+.kpi-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);margin-bottom:14px}
+.kpi-n{font-size:44px;font-weight:300;letter-spacing:-.05em;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
+.kpi-g .kpi-n{background:linear-gradient(135deg,var(--brand),var(--brand-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.kpi-r .kpi-n{color:var(--red)}
+.kpi-b .kpi-n{color:var(--blue)}
+.kpi-a .kpi-n{color:var(--amber)}
+.kpi-d{font-size:11px;color:var(--tx3)}
+
+.painel-filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.pf-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border-s);background:transparent;color:var(--tx2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
+.pf-btn:hover{background:var(--raised);color:var(--tx)}
+.pf-btn.on{background:var(--brand-dim);border-color:var(--brand);color:var(--brand)}
+.pf-count{font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(255,255,255,.08);margin-left:4px;color:var(--tx3)}
+.pf-btn.on .pf-count{background:rgba(9,188,138,.2);color:var(--brand)}
+
+.urg-hd{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.urg-hd-count{font-size:11px;font-weight:500;color:var(--tx3);letter-spacing:0;text-transform:none}
+.urg-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+.urg-list{display:flex;flex-direction:column;gap:8px}
+.urg-item{transition:opacity .15s}
+.urg-item.hidden{display:none}
+
+.tag-renovacao{background:rgba(245,158,11,.12);color:var(--amber);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.tag-semana{background:rgba(96,165,250,.12);color:var(--blue);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.urg-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 18px;display:flex;align-items:center;gap:14px;transition:all .15s;cursor:pointer}
+.urg-row:hover{border-color:rgba(255,255,255,.13);background:var(--raised)}
+.urg-n{font-size:11px;font-weight:700;color:var(--tx3);width:18px;text-align:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.urg-co{font-size:14px;font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urg-meta{font-size:11px;color:var(--tx2)}
+.urg-days{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.dc{background:rgba(239,68,68,.14);color:var(--red)}
+.dw{background:rgba(245,158,11,.14);color:var(--amber)}
+.btn-ver{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--tx2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .15s}
+.btn-ver:hover{background:var(--raised);color:var(--tx)}
+
+/* ══════════════════════════════════
+   AI SIDE PANEL
+══════════════════════════════════ */
+.urg-item{margin-bottom:8px}
+.urg-item .urg-row{border-radius:12px;transition:background .15s,border-color .15s;cursor:default}
+
+.btn-ai{padding:5px 11px;border-radius:8px;border:1px solid rgba(99,102,241,.25);background:rgba(99,102,241,.08);color:var(--indigo);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .15s;display:flex;align-items:center;gap:5px;letter-spacing:.01em}
+.btn-ai:hover{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4)}
+.btn-ai.on{background:rgba(99,102,241,.2);border-color:var(--indigo)}
+
+/* painel layout splits when ai open */
+#s-painel .main{display:flex;position:relative;overflow:hidden}
+.painel-scroll{flex:1;overflow-y:auto;transition:margin-right .45s cubic-bezier(.4,0,.2,1)}
+#s-painel .main.ai-open .painel-scroll{margin-right:400px}
+
+.ai-side{
+  position:absolute;right:0;top:0;bottom:0;width:400px;
+  background:rgba(20,21,26,.98);
+  border-left:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  overflow-y:auto;
+  transform:translateX(100%);
+  transition:transform .45s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+#s-painel .main.ai-open .ai-side{transform:translateX(0)}
+
+.ai-side-head{
+  padding:22px 24px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  position:sticky;top:0;
+  background:rgba(20,21,26,.98);
+  backdrop-filter:blur(16px);
+  z-index:1;
+}
+.ai-side-close{
+  width:28px;height:28px;border-radius:8px;border:none;
+  background:transparent;color:var(--tx2);font-size:14px;
+  cursor:pointer;font-family:inherit;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.ai-side-close:hover{background:var(--raised)}
+
+.ai-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--brand),var(--indigo));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px;
+}
+.ai-client-name{font-size:14px;font-weight:600;letter-spacing:-.02em}
+
+.ai-body{padding:22px 24px;flex:1}
+
+.ai-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+.ai-chip{font-size:11px;font-weight:500;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--tx2)}
+
+.ai-block{margin-bottom:20px}
+.ai-block-title{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px}
+.ai-text{font-size:13px;color:var(--tx2);line-height:1.65}
+
+.ai-tags{display:flex;gap:6px;flex-wrap:wrap}
+.ai-tag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px}
+.ai-tag-g{background:rgba(9,188,138,.1);color:var(--brand)}
+.ai-tag-r{background:rgba(239,68,68,.1);color:var(--red)}
+.ai-tag-i{background:rgba(99,102,241,.1);color:var(--indigo)}
+.ai-tag-a{background:rgba(245,158,11,.1);color:var(--amber)}
+
+.ai-script-wrap{
+  position:relative;
+  background:rgba(255,255,255,.03);
+  border-radius:0 10px 10px 0;
+  padding:14px 16px 38px 16px;
+  margin-top:4px;
+}
+.ai-script-wrap::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:linear-gradient(to bottom,var(--brand),var(--indigo));
+  border-radius:2px;
+}
+.ai-script-text{font-size:13px;color:var(--tx);line-height:1.65;font-style:italic}
+.ai-copy{
+  position:absolute;bottom:8px;right:8px;
+  padding:5px 6px;border-radius:7px;border:1px solid var(--border);
+  background:var(--raised);color:var(--tx3);
+  cursor:pointer;font-family:inherit;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.ai-copy:hover{border-color:rgba(255,255,255,.14);color:var(--tx)}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- DEMO NAV -->
+<nav class="dnav">
+  <span class="dnav-lbl">Preview</span>
+  <button class="dnav-btn on" onclick="show('login',this)">Login</button>
+  <button class="dnav-btn" onclick="show('clients',this)">Meus Clientes</button>
+  <button class="dnav-btn" onclick="show('timeline',this)">Linha do Tempo</button>
+  <button class="dnav-btn" onclick="show('painel',this)">Painel</button>
+</nav>
+
+<!-- ═════════════════════ LOGIN ═════════════════════ -->
+<div id="s-login" class="screen on">
+  <div class="login-wrap">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="dot-grid"></div>
+    <div class="login-inner">
+      <div class="logo-lockup">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18" stroke="#0d1e18" stroke-width=".5" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <div class="name">Prospecção</div>
+          <div class="sub">Linha do tempo comercial · Tendência Energia</div>
+        </div>
+      </div>
+      <div class="login-card">
+        <h1>Bom dia</h1>
+        <p>Entre com sua conta Nexi para acessar sua carteira de clientes</p>
+        <button class="btn-cta" onclick="openSplit()">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18"/></svg>
+          Entrar com a Nexi
+        </button>
+      </div>
+    </div>
+
+    <!-- right panel — slides in -->
+    <div class="login-right">
+      <div style="width:100%">
+        <button class="lr-back" onclick="closeSplit()">← voltar</button>
+        <div class="lr-head">
+          <h2>Bem-vindo de volta</h2>
+          <p>Use suas credenciais da Nexi para acessar</p>
+        </div>
+        <div class="fld">
+          <label>E-mail</label>
+          <input type="email" placeholder="seu@tendenciaenergia.com.br" autocomplete="off"/>
+        </div>
+        <div class="fld">
+          <label>Senha</label>
+          <input type="password" placeholder="••••••••"/>
+        </div>
+        <button class="btn-submit" onclick="closeSplit();show('clients',document.querySelectorAll('.dnav-btn')[1])">Entrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════ CLIENTES ═════════════════════ -->
+<div id="s-clients" class="screen">
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-icon"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18"/></svg></div>
+        <span class="sb-name">Prospecção</span>
+      </div>
+      <div class="nav-item on">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="currentColor"><path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z"/></svg>
+        Meus Clientes
+      </div>
+      <div class="nav-item" onclick="show('painel',document.querySelectorAll('.dnav-btn')[3])">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l1.6 4.9H15l-4.2 3 1.6 4.9L8 11.3l-4.4 3.1 1.6-4.9L1 6.4h5.4z"/></svg>
+        Painel
+      </div>
+      <div class="nav-item">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4l2 2"/></svg>
+        Follow-ups
+      </div>
+      <div class="sb-foot">
+        <div class="agent-row">
+          <div class="agent-av">GS</div>
+          <div><div class="agent-name">Guilherme S.</div><div class="agent-role">Agente comercial</div></div>
+        </div>
+      </div>
+    </nav>
+    <div class="main">
+      <div class="page-head">
+        <div>
+          <div class="page-h1">Meus Clientes</div>
+          <div class="page-sub">Base sincronizada com a Nexi · atualizada agora</div>
+        </div>
+        <div class="head-stats">
+          <div class="h-stat"><div class="n n-green">24</div><div class="l">clientes</div></div>
+          <div class="h-stat"><div class="n n-red">5</div><div class="l">atrasados</div></div>
+        </div>
+      </div>
+      <div class="filters">
+        <button class="chip on">Todos</button>
+        <button class="chip" onclick="toggleChip(this)">Atrasados</button>
+        <button class="chip" onclick="toggleChip(this)">Renovação próxima</button>
+        <div class="chip-sep"></div>
+        <button class="chip" onclick="toggleChip(this)">SP</button>
+        <button class="chip" onclick="toggleChip(this)">MG</button>
+        <button class="chip" onclick="toggleChip(this)">PA</button>
+        <button class="chip" onclick="toggleChip(this)">RJ</button>
+      </div>
+      <div class="cl-list">
+
+        <!-- Card: atrasado (red) -->
+        <div class="cl-card" onclick="show('timeline',document.querySelectorAll('.dnav-btn')[2])">
+          <div class="stripe s-red"></div>
+          <div class="cl-body">
+            <div class="cl-main">
+              <div class="cl-co">Metalúrgica São Paulo Ltda</div>
+              <div class="cl-meta">
+                <span>SP</span><span style="color:var(--tx3)">·</span>
+                <span>1.200 kWh/mês</span><span style="color:var(--tx3)">·</span>
+                <span>EDP São Paulo</span>
+              </div>
+              <div class="cl-last">Última: Ligação — Não atendeu · <span style="color:var(--tx3)">há 5 dias</span></div>
+            </div>
+            <div class="cl-badges">
+              <span class="bdg bdg-red">⚠ Atrasado 3 dias</span>
+              <span class="bdg bdg-muted">Em contato</span>
+            </div>
+            <div class="cl-arr">→</div>
+          </div>
+        </div>
+
+        <!-- Card: renovação próxima (amber) -->
+        <div class="cl-card">
+          <div class="stripe s-amber"></div>
+          <div class="cl-body">
+            <div class="cl-main">
+              <div class="cl-co">Frigorífico Norte S.A.</div>
+              <div class="cl-meta">
+                <span>PA</span><span style="color:var(--tx3)">·</span>
+                <span>3.800 kWh/mês</span><span style="color:var(--tx3)">·</span>
+                <span>Equatorial</span>
+              </div>
+              <div class="cl-last">Última: Reunião — Agendou retorno · <span style="color:var(--tx3)">há 2 dias</span></div>
+            </div>
+            <div class="cl-badges">
+              <span class="bdg bdg-amber">↻ Renova em 3 meses</span>
+              <span class="bdg bdg-green">Em negociação</span>
+            </div>
+            <div class="cl-arr">→</div>
+          </div>
+        </div>
+
+        <!-- Card: proposta enviada (green) -->
+        <div class="cl-card">
+          <div class="stripe s-green"></div>
+          <div class="cl-body">
+            <div class="cl-main">
+              <div class="cl-co">Cooperativa Agrícola Triângulo</div>
+              <div class="cl-meta">
+                <span>MG</span><span style="color:var(--tx3)">·</span>
+                <span>6.200 kWh/mês</span><span style="color:var(--tx3)">·</span>
+                <span>CEMIG</span>
+              </div>
+              <div class="cl-last">Última: Proposta enviada · <span style="color:var(--tx3)">ontem</span></div>
+            </div>
+            <div class="cl-badges">
+              <span class="bdg bdg-green">Proposta enviada</span>
+              <span class="bdg bdg-muted">Follow-up: 28 jun</span>
+            </div>
+            <div class="cl-arr">→</div>
+          </div>
+        </div>
+
+        <!-- Card: novo (blue) -->
+        <div class="cl-card">
+          <div class="stripe s-blue"></div>
+          <div class="cl-body">
+            <div class="cl-main">
+              <div class="cl-co">Indústria Têxtil Modernidade</div>
+              <div class="cl-meta">
+                <span>SP</span><span style="color:var(--tx3)">·</span>
+                <span>2.100 kWh/mês</span><span style="color:var(--tx3)">·</span>
+                <span>Concorrente não mapeado</span>
+              </div>
+              <div class="cl-last" style="color:var(--tx3)">Nenhum contato registrado</div>
+            </div>
+            <div class="cl-badges">
+              <span class="bdg bdg-blue">Novo</span>
+            </div>
+            <div class="cl-arr">→</div>
+          </div>
+        </div>
+
+        <!-- Card: declínio (muted, dimmed) -->
+        <div class="cl-card" style="opacity:.6">
+          <div class="stripe s-muted"></div>
+          <div class="cl-body">
+            <div class="cl-main">
+              <div class="cl-co">Supermercados Regional Ltda</div>
+              <div class="cl-meta">
+                <span>RJ</span><span style="color:var(--tx3)">·</span>
+                <span>890 kWh/mês</span>
+              </div>
+              <div class="cl-last">Última: Declínio — Cliente recusou · <span style="color:var(--tx3)">há 8 dias</span></div>
+            </div>
+            <div class="cl-badges">
+              <span class="bdg bdg-muted">Recusou</span>
+            </div>
+            <div class="cl-arr">→</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════ TIMELINE ═════════════════════ -->
+<div id="s-timeline" class="screen">
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-icon"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18"/></svg></div>
+        <span class="sb-name">Prospecção</span>
+      </div>
+      <div class="nav-item" onclick="show('clients',document.querySelectorAll('.dnav-btn')[1])">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="currentColor"><path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z"/></svg>
+        Meus Clientes
+      </div>
+      <div class="nav-item" onclick="show('painel',document.querySelectorAll('.dnav-btn')[3])">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l1.6 4.9H15l-4.2 3 1.6 4.9L8 11.3l-4.4 3.1 1.6-4.9L1 6.4h5.4z"/></svg>
+        Painel
+      </div>
+      <div class="nav-item">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4l2 2"/></svg>
+        Follow-ups
+      </div>
+      <div class="sb-foot">
+        <div class="agent-row">
+          <div class="agent-av">GS</div>
+          <div><div class="agent-name">Guilherme S.</div><div class="agent-role">Agente comercial</div></div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="tl-wrap">
+      <!-- Left panel -->
+      <div class="tl-left">
+        <div class="tl-hd">
+          <button class="tl-back" onclick="show('clients',document.querySelectorAll('.dnav-btn')[1])">← Voltar a clientes</button>
+          <div class="tl-co">Metalúrgica São Paulo Ltda</div>
+          <div class="tl-co-sub">CNPJ 12.345.678/0001-90 · São Paulo, SP</div>
+          <div class="tl-status"><span class="bdg bdg-red">⚠ Follow-up atrasado</span></div>
+        </div>
+        <div class="tl-sec">
+          <div class="tl-sec-title">Da Nexi</div>
+          <div class="tl-f"><div class="lbl">UF</div><div class="val">São Paulo — SP</div></div>
+          <div class="tl-f"><div class="lbl">Consumo estimado</div><div class="val">1.200 kWh/mês</div></div>
+          <div class="tl-f"><div class="lbl">Status</div><div class="val">Em contato</div></div>
+        </div>
+        <div class="tl-sec">
+          <div class="tl-sec-title">Receita Federal</div>
+          <div class="tl-f"><div class="lbl">CNAE</div><div class="val">2512-8 · Fabricação de esquadrias metálicas</div></div>
+          <div class="tl-f"><div class="lbl">Endereço</div><div class="val">R. das Indústrias, 450 — Guarulhos</div></div>
+          <div class="tl-f"><div class="lbl">Telefone</div><div class="val">(11) 2345-6789</div></div>
+        </div>
+        <div class="tl-sec" style="border-bottom:none">
+          <div class="tl-sec-title">Contexto comercial</div>
+          <div class="tl-f"><div class="lbl">Concorrente atual</div><div class="val">EDP São Paulo</div></div>
+          <div class="tl-f"><div class="lbl">Vencimento do contrato</div><div class="val" style="color:var(--amber)">Dez/2025 · em 5 meses</div></div>
+        </div>
+        <button class="btn-reg" onclick="openRegModal()">+ Registrar Contato</button>
+      </div>
+
+      <!-- Right: timeline -->
+      <div class="tl-right">
+        <div class="tl-section-hd">Histórico de contatos</div>
+        <div class="tl-entries">
+
+          <!-- entry 1 -->
+          <div class="tl-entry">
+            <div class="tl-node nd-call">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 1c0 0-1.5 0-1.5 1.5C1 7.75 6.25 13 11.5 13c1.5 0 1.5-1.5 1.5-1.5L11 8.5 9 9.5S7.5 8.5 6 7 3.5 4 3.5 4l1-2L2.5 1z"/></svg>
+            </div>
+            <div class="tl-cnt">
+              <div class="tl-cnt-top">
+                <div class="tl-bdgs">
+                  <span class="bdg bdg-muted">Ligação</span>
+                  <span class="bdg bdg-red">Não atendeu</span>
+                </div>
+                <span class="tl-when">20 jun · 14h32</span>
+              </div>
+              <div class="tl-note">Liguei novamente para o Rômulo. Não atendeu. Número correto, mas fora do horário de trabalho.</div>
+              <div class="tl-fu">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v3M11 1v3M2 7h12"/></svg>
+                Follow-up: <strong>25 jun</strong>&nbsp;
+                <span class="bdg bdg-red" style="font-size:10px;padding:2px 7px">Atrasado</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- entry 2 -->
+          <div class="tl-entry">
+            <div class="tl-node nd-email">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 5l7 5 7-5"/></svg>
+            </div>
+            <div class="tl-cnt">
+              <div class="tl-cnt-top">
+                <div class="tl-bdgs">
+                  <span class="bdg bdg-muted">E-mail</span>
+                  <span class="bdg bdg-green">Atendeu</span>
+                </div>
+                <span class="tl-when">17 jun · 09h15</span>
+              </div>
+              <div class="tl-note">Enviei proposta de migração com simulação de 12 meses. Rômulo confirmou recebimento e pediu uma semana para análise interna com o financeiro.</div>
+              <div class="tl-fu">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v3M11 1v3M2 7h12"/></svg>
+                Follow-up: <strong>24 jun</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- entry 3 -->
+          <div class="tl-entry">
+            <div class="tl-node nd-meet">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="5.5" cy="5" r="2.2"/><path d="M1 14c0-3 2-4.5 4.5-4.5S10 11 10 14"/><circle cx="12" cy="5" r="1.8"/><path d="M12 9.8c1.4.2 3 1 3 4.2"/></svg>
+            </div>
+            <div class="tl-cnt">
+              <div class="tl-cnt-top">
+                <div class="tl-bdgs">
+                  <span class="bdg bdg-muted">Reunião</span>
+                  <span class="bdg bdg-green">Agendou retorno</span>
+                </div>
+                <span class="tl-when">10 jun · 16h00</span>
+              </div>
+              <div class="tl-note">Video com Rômulo e o diretor financeiro. Apresentei o modelo de economia no mercado livre. Ficaram interessados — pediram proposta formal com simulação de 12 meses.</div>
+              <div class="tl-fu">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v3M11 1v3M2 7h12"/></svg>
+                Follow-up: <strong>17 jun</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- entry 4 -->
+          <div class="tl-entry">
+            <div class="tl-node nd-call">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 1c0 0-1.5 0-1.5 1.5C1 7.75 6.25 13 11.5 13c1.5 0 1.5-1.5 1.5-1.5L11 8.5 9 9.5S7.5 8.5 6 7 3.5 4 3.5 4l1-2L2.5 1z"/></svg>
+            </div>
+            <div class="tl-cnt">
+              <div class="tl-cnt-top">
+                <div class="tl-bdgs">
+                  <span class="bdg bdg-muted">Ligação</span>
+                  <span class="bdg bdg-green">Atendeu</span>
+                </div>
+                <span class="tl-when">5 jun · 11h20</span>
+              </div>
+              <div class="tl-note">Falei com Rômulo, responsável financeiro. Consumo confirmado acima de 500 kWh. Aberto para conversa — agendamos reunião para o dia 10.</div>
+              <div class="tl-fu">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v3M11 1v3M2 7h12"/></svg>
+                Follow-up: <strong>10 jun</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- entry 5 -->
+          <div class="tl-entry">
+            <div class="tl-node nd-call">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 1c0 0-1.5 0-1.5 1.5C1 7.75 6.25 13 11.5 13c1.5 0 1.5-1.5 1.5-1.5L11 8.5 9 9.5S7.5 8.5 6 7 3.5 4 3.5 4l1-2L2.5 1z"/></svg>
+            </div>
+            <div class="tl-cnt">
+              <div class="tl-cnt-top">
+                <div class="tl-bdgs">
+                  <span class="bdg bdg-muted">Ligação</span>
+                  <span class="bdg" style="background:rgba(100,100,140,.12);color:var(--tx2)">Não atendeu</span>
+                </div>
+                <span class="tl-when">3 jun · 09h00</span>
+              </div>
+              <div class="tl-note">Primeiro contato. Não atendeu. Deixei recado.</div>
+              <div class="tl-fu">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v3M11 1v3M2 7h12"/></svg>
+                Follow-up: <strong>5 jun</strong>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register modal -->
+  <div id="m-register" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeRegModal()">
+    <div class="modal-box" style="max-width:460px">
+      <div class="modal-head">
+        <span class="modal-title">Registrar Contato</span>
+        <button class="modal-x" onclick="closeRegModal()">✕</button>
+      </div>
+      <div style="margin-bottom:14px">
+        <span class="fld-lbl">Tipo de contato</span>
+        <div class="tipo-row">
+          <button class="tipo-btn on" onclick="selectTipo(this)">📞 Ligação</button>
+          <button class="tipo-btn" onclick="selectTipo(this)">✉ E-mail</button>
+          <button class="tipo-btn" onclick="selectTipo(this)">👥 Reunião</button>
+          <button class="tipo-btn" onclick="selectTipo(this)">📄 Proposta</button>
+          <button class="tipo-btn" onclick="selectTipo(this)">✕ Declínio</button>
+        </div>
+      </div>
+      <div class="reg-grid">
+        <div>
+          <label class="fld-lbl">Status</label>
+          <select class="fld-inp">
+            <option>Atendeu</option>
+            <option>Não atendeu</option>
+            <option>Agendou retorno</option>
+            <option>Cliente recusou</option>
+          </select>
+        </div>
+        <div>
+          <label class="fld-lbl">Data e hora</label>
+          <input type="datetime-local" class="fld-inp" style="color-scheme:dark"/>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="fld-lbl">Comentário</label>
+        <textarea class="fld-inp" placeholder="O que aconteceu nesse contato?"></textarea>
+      </div>
+      <div>
+        <label class="fld-lbl">Próximo Follow-up</label>
+        <input type="date" class="fld-inp" value="2026-06-27" style="color-scheme:dark"/>
+        <div style="font-size:11px;color:var(--tx3);margin-top:5px">Pré-preenchido com +2 dias úteis</div>
+      </div>
+      <div class="reg-foot">
+        <button class="btn-cancel" onclick="closeRegModal()">Cancelar</button>
+        <button class="btn-save" onclick="closeRegModal()">Salvar contato</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════ PAINEL ═════════════════════ -->
+<div id="s-painel" class="screen">
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-icon"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18"/></svg></div>
+        <span class="sb-name">Prospecção</span>
+      </div>
+      <div class="nav-item" onclick="show('clients',document.querySelectorAll('.dnav-btn')[1])">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="currentColor"><path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z"/></svg>
+        Meus Clientes
+      </div>
+      <div class="nav-item on">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l1.6 4.9H15l-4.2 3 1.6 4.9L8 11.3l-4.4 3.1 1.6-4.9L1 6.4h5.4z"/></svg>
+        Painel
+      </div>
+      <div class="nav-item">
+        <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4l2 2"/></svg>
+        Follow-ups
+      </div>
+      <div class="sb-foot">
+        <div class="agent-row">
+          <div class="agent-av">GS</div>
+          <div><div class="agent-name">Guilherme S.</div><div class="agent-role">Agente comercial</div></div>
+        </div>
+      </div>
+    </nav>
+    <div class="main" id="painel-main">
+      <div class="painel-scroll"><div class="painel-body">
+        <div class="painel-h1">Painel</div>
+        <div class="painel-sub">Sua carteira hoje · 25 jun 2026</div>
+
+        <div class="kpi-grid">
+          <div class="kpi kpi-g">
+            <div class="kpi-lbl">Total de Clientes</div>
+            <div class="kpi-n">24</div>
+            <div class="kpi-d">base sincronizada</div>
+          </div>
+          <div class="kpi kpi-r">
+            <div class="kpi-lbl">Follow-ups Atrasados</div>
+            <div class="kpi-n">5</div>
+            <div class="kpi-d">↑ 2 desde ontem</div>
+          </div>
+          <div class="kpi kpi-b">
+            <div class="kpi-lbl">Contatados essa Semana</div>
+            <div class="kpi-n">8</div>
+            <div class="kpi-d">meta: 10 por semana</div>
+          </div>
+          <div class="kpi kpi-a">
+            <div class="kpi-lbl">Renovações Próximas</div>
+            <div class="kpi-n">3</div>
+            <div class="kpi-d">contratos em 6 meses</div>
+          </div>
+        </div>
+
+        <div class="painel-filters">
+          <button class="pf-btn on" onclick="filterUrgency('todos',this)">Todos <span class="pf-count">9</span></button>
+          <button class="pf-btn" onclick="filterUrgency('atrasado',this)">Follow-up atrasado <span class="pf-count">5</span></button>
+          <button class="pf-btn" onclick="filterUrgency('semana',this)">Contatados essa semana <span class="pf-count">4</span></button>
+          <button class="pf-btn" onclick="filterUrgency('renovacao',this)">Renovações próximas <span class="pf-count">3</span></button>
+        </div>
+
+        <div class="urg-hd" id="urg-hd-label">Todos os clientes <span class="urg-hd-count" id="urg-count"></span></div>
+        <div class="urg-list">
+
+          <!-- ATRASADOS -->
+          <div class="urg-item" data-tag="atrasado">
+            <div class="urg-row">
+              <span class="urg-n">1</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Metalúrgica São Paulo Ltda</div>
+                <div class="urg-meta">SP · Proposta enviada · Último contato não atendeu</div>
+              </div>
+              <span class="urg-days dc">5 dias atraso</span>
+              <button class="btn-ai" onclick="openAI('metalurgica',this)">✦ Ver análise</button>
+              <button class="btn-ver" onclick="show('timeline',document.querySelectorAll('.dnav-btn')[2])">Ver →</button>
+            </div>
+          </div>
+          <div class="urg-item" data-tag="atrasado">
+            <div class="urg-row">
+              <span class="urg-n">2</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Cerâmica Vale do Rio S.A.</div>
+                <div class="urg-meta">MG · E-mail enviado · Sem resposta</div>
+              </div>
+              <span class="urg-days dc">4 dias atraso</span>
+              <button class="btn-ai" onclick="openAI('ceramica',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+          <div class="urg-item" data-tag="atrasado">
+            <div class="urg-row">
+              <span class="urg-n">3</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Distribuidora Nordeste Ltda</div>
+                <div class="urg-meta">BA · Comprometeu retorno · Não retornou</div>
+              </div>
+              <span class="urg-days dw">2 dias atraso</span>
+              <button class="btn-ai" onclick="openAI('distribuidora',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+          <div class="urg-item" data-tag="atrasado">
+            <div class="urg-row">
+              <span class="urg-n">4</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Agropecuária Planalto</div>
+                <div class="urg-meta">GO · Reunião realizada · Proposta enviada ontem</div>
+              </div>
+              <span class="urg-days dw">1 dia atraso</span>
+              <button class="btn-ai" onclick="openAI('agropecuaria',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+          <div class="urg-item" data-tag="atrasado">
+            <div class="urg-row">
+              <span class="urg-n">5</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Porto Seco Logística</div>
+                <div class="urg-meta">RS · Primeiro contato · Não atendeu</div>
+              </div>
+              <span class="urg-days dw">1 dia atraso</span>
+              <button class="btn-ai" onclick="openAI('porto',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+
+          <!-- CONTATADOS ESSA SEMANA -->
+          <div class="urg-item" data-tag="semana renovacao">
+            <div class="urg-row">
+              <span class="urg-n">6</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Frigorífico Norte S.A.</div>
+                <div class="urg-meta">PA · Reunião realizada · Agendou retorno</div>
+              </div>
+              <span class="tag-renovacao">Renova em 3 meses</span>
+              <span class="tag-semana">Esta semana</span>
+              <button class="btn-ai" onclick="openAI('frigorifico',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+          <div class="urg-item" data-tag="semana">
+            <div class="urg-row">
+              <span class="urg-n">7</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Cooperativa Agrícola Triângulo</div>
+                <div class="urg-meta">MG · Proposta enviada · Aguardando resposta</div>
+              </div>
+              <span class="tag-semana">Esta semana</span>
+              <button class="btn-ai" onclick="openAI('cooperativa',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+          <div class="urg-item" data-tag="semana">
+            <div class="urg-row">
+              <span class="urg-n">8</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Madeireira Pinheiro Ltda</div>
+                <div class="urg-meta">SC · Ligação · Atendeu, pediu proposta</div>
+              </div>
+              <span class="tag-semana">Esta semana</span>
+              <button class="btn-ai" onclick="openAI('madeireira',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+
+          <!-- RENOVAÇÕES PRÓXIMAS -->
+          <div class="urg-item" data-tag="renovacao">
+            <div class="urg-row">
+              <span class="urg-n">9</span>
+              <div style="flex:1;min-width:0">
+                <div class="urg-co">Indústria Têxtil Modernidade</div>
+                <div class="urg-meta">SP · Sem contato recente · Concorrente: CPFL</div>
+              </div>
+              <span class="tag-renovacao">Renova em 2 meses</span>
+              <button class="btn-ai" onclick="openAI('textil',this)">✦ Ver análise</button>
+              <button class="btn-ver">Ver →</button>
+            </div>
+          </div>
+
+        </div>
+      </div></div><!-- /painel-body /painel-scroll -->
+
+      <!-- AI SIDE PANEL -->
+      <div class="ai-side" id="ai-side">
+        <div class="ai-side-head">
+          <div>
+            <div class="ai-badge">✦ Análise de IA</div>
+            <div class="ai-client-name" id="ai-client-name">—</div>
+          </div>
+          <button class="ai-side-close" onclick="closeAI()">✕</button>
+        </div>
+        <div class="ai-body" id="ai-body"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.dnav-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('s-' + id).classList.add('on');
+  if (btn) btn.classList.add('on');
+}
+
+function openSplit() {
+  document.querySelector('#s-login .login-wrap').classList.add('split');
+}
+function closeSplit() {
+  document.querySelector('#s-login .login-wrap').classList.remove('split');
+}
+function openRegModal() {
+  const m = document.getElementById('m-register');
+  m.style.display = 'flex';
+  m.style.animation = 'none';
+  m.offsetHeight;
+  m.style.animation = '';
+}
+function closeRegModal() {
+  document.getElementById('m-register').style.display = 'none';
+}
+function selectTipo(btn) {
+  btn.closest('.tipo-row').querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function toggleChip(btn) {
+  btn.classList.toggle('on');
+}
+const AI_DATA = {
+  metalurgica: {
+    name: 'Metalúrgica São Paulo Ltda',
+    contextTitle: 'Por que o silêncio?',
+    chips: ['📄 Proposta enviada há 8 dias','👥 Diretor financeiro envolvido','⚡ Contrato vence em 5 meses','🕐 Não atendeu às 14h32'],
+    contexto: 'Rômulo pediu uma semana para análise interna — passaram 8 dias. O não-atendimento às 14h32 sugere horário inadequado, não evasão. Com o diretor financeiro envolvido, a decisão é colegiada e naturalmente mais lenta. O interesse demonstrado na reunião de junho era genuíno.',
+    tags: [['g','Tom consultivo'],['i','Ligar pela manhã'],['r','Não cobrar resposta'],['a','Reforçar urgência do contrato']],
+    script: 'Rômulo, tudo bem? Queria saber se surgiu alguma dúvida sobre a simulação que mandei. Às vezes tem detalhe que fica sem resposta na proposta — posso ajustar se precisar. O diretor teve chance de dar uma olhada?'
+  },
+  ceramica: {
+    name: 'Cerâmica Vale do Rio S.A.',
+    contextTitle: 'Por que o silêncio?',
+    chips: ['📧 E-mail sem resposta há 4 dias','🤝 Nenhuma ligação realizada ainda','❓ Relação não estabelecida'],
+    contexto: 'E-mail tem taxa de abertura incerta — pode estar em spam ou simplesmente não foi priorizado. Nunca houve ligação: o relacionamento ainda não foi estabelecido de voz. O cliente não tem contexto suficiente para responder com interesse real.',
+    tags: [['g','Ligar, não reenviar e-mail'],['i','Apresentação rápida (3 min)'],['a','Confirmar recebimento']],
+    script: 'Olá, tudo bem? Sou da Tendência Energia. Mandei um e-mail há alguns dias sobre uma análise de economia no consumo de energia da cerâmica. Você chegou a receber? Consigo apresentar em 3 minutos agora mesmo se quiser.'
+  },
+  distribuidora: {
+    name: 'Distribuidora Nordeste Ltda',
+    contextTitle: 'Por que o silêncio?',
+    chips: ['🤝 Se comprometeu a ligar','⏰ 2 dias além do combinado','📍 BA — possível fuso horário'],
+    contexto: 'Cliente se comprometeu mas não ligou — comportamento comum quando a decisão ainda precisa de mais tempo ou outra prioridade surgiu. Não é sinal de desinteresse. O compromisso verbal é um ativo — use com leveza.',
+    tags: [['i','Lembrete gentil'],['g','Reforçar que não é cobrança'],['a','Abrir espaço para reagendar']],
+    script: 'Oi, tudo bem? Você tinha falado que me ligaria essa semana sobre a migração de energia. Queria só confirmar se ainda está na pauta ou se surgiu alguma coisa. Fico à disposição para reagendar no melhor momento pra você.'
+  },
+  agropecuaria: {
+    name: 'Agropecuária Planalto',
+    contextTitle: 'Por que o silêncio?',
+    chips: ['📄 Proposta enviada ontem','✅ Reunião bem-sucedida','🔥 Janela de encantamento aberta'],
+    contexto: 'Apenas 1 dia — muito cedo para preocupação. A proposta é nova e o cliente ainda está processando. Esta é a janela ideal de follow-up: o conteúdo está fresco, o interesse da reunião ainda está ativo.',
+    tags: [['g','Confirmar recebimento agora'],['i','Tom de suporte, não pressão'],['a','Aproveitar momentum da reunião']],
+    script: 'Oi! Enviei a proposta ontem à tarde. Queria confirmar que chegou certinha e se ficou fácil de ler. Qualquer dúvida sobre a simulação ou os números, me avisa que ajusto na hora.'
+  },
+  porto: {
+    name: 'Porto Seco Logística',
+    contextTitle: 'Por que o silêncio?',
+    chips: ['📞 Primeiro contato tentado','❌ Não atendeu ontem','🆕 Relação ainda inexistente'],
+    contexto: 'Simples: não estava disponível. Primeiro contato com 1 dia de atraso não é sinal de nada. Tente um horário diferente — logísticas geralmente têm manhã mais intensa. Fim de tarde pode funcionar melhor.',
+    tags: [['i','Tentar horário diferente'],['g','Deixar mensagem de voz curta'],['a','Gancho: redução de custo operacional']],
+    script: 'Tudo bem? Tentei te ligar ontem. Sou da Tendência Energia — trabalho com empresas de logística para reduzir custo com energia elétrica. Quando seria um bom momento pra trocar uma ideia de 5 minutos?'
+  },
+  frigorifico: {
+    name: 'Frigorífico Norte S.A.',
+    contextTitle: 'Momento atual',
+    chips: ['✅ Reunião realizada','📅 Retorno agendado','⚡ Contrato vence em 3 meses','🔥 Prioridade máxima — semana + renovação'],
+    contexto: 'Reunião bem recebida e o cliente agendou retorno espontaneamente — sinal claro de interesse real. Com o contrato vencendo em 3 meses, a janela de decisão está aberta agora. Concorrente atual provavelmente vai entrar em contato no mesmo período. Quem chegar primeiro com proposta sólida leva.',
+    tags: [['g','Tom parceiro, não vendedor'],['a','Antecipar renovação como vantagem'],['i','Levar simulação comparativa'],['r','Criar senso de oportunidade, não urgência artificial']],
+    script: 'Oi! Fiz a simulação com base nos dados que você compartilhou na reunião. Com o contrato vencendo em outubro, antecipar agora pode travar uma tarifa mais favorável antes da alta sazonal. Quando você estaria disponível pra gente fechar os números?'
+  },
+  cooperativa: {
+    name: 'Cooperativa Agrícola Triângulo',
+    contextTitle: 'Momento atual',
+    chips: ['📄 Proposta enviada','⏳ Aguardando resposta','✅ Ligação atendida na semana'],
+    contexto: 'Cliente atendeu e demonstrou abertura. Proposta está em análise — estágio de momentum positivo. Agora é o momento de facilitar a decisão, não de pressionar. Cooperativas têm decisão colegiada: pode estar circulando internamente.',
+    tags: [['g','Facilitar decisão, não pressionar'],['i','Perguntar se chegou para todos os decisores'],['a','Oferecer reunião de apresentação interna']],
+    script: 'Oi, tudo bem? A proposta chegou bem? Às vezes em cooperativa ela precisa passar por mais de uma pessoa antes de avançar — se quiser, posso fazer uma apresentação rápida para o grupo, facilita bastante a discussão interna.'
+  },
+  madeireira: {
+    name: 'Madeireira Pinheiro Ltda',
+    contextTitle: 'Momento atual',
+    chips: ['📞 Ligação atendida','✅ Pediu proposta','🔥 Interesse confirmado — semana atual'],
+    contexto: 'Cliente atendeu, ouviu e pediu proposta — interesse confirmado e ativo. Este é o estágio mais quente: o cliente está no modo de comparação. A proposta precisa chegar bem estruturada e ser acompanhada imediatamente. Velocidade aqui é diferencial.',
+    tags: [['a','Enviar proposta hoje'],['g','Confirmar recebimento em 24h'],['i','Destacar economia mensal, não técnica'],['r','Simplicidade: 1 página, 1 número claro']],
+    script: 'Oi! A proposta foi enviada agora há pouco. Destaquei a economia mensal estimada no topo, bem direto. Quando você tiver um momento pra dar uma olhada, me fala o que achou — se precisar ajustar algo, resolvo rápido.'
+  },
+  textil: {
+    name: 'Indústria Têxtil Modernidade',
+    contextTitle: 'Janela de renovação',
+    chips: ['🏁 Contrato vence em 2 meses','⚠️ Concorrente atual: CPFL','📵 Sem contato recente','🎯 Oportunidade de virada'],
+    contexto: 'Contrato vencendo em 2 meses com concorrente ativo (CPFL) — janela crítica de virada. A ausência de contato recente pode ser lida como indiferença pelo cliente. CPFL provavelmente já está em processo de renovação. Entrar agora com proposta comparativa bem estruturada ainda é viável, mas a urgência é real.',
+    tags: [['a','Entrar com comparativo CPFL × Tendência'],['g','Tom consultivo: "vamos ver se faz sentido"'],['r','Não atacar o concorrente — comparar dados'],['i','Urgência real: 2 meses, não urgência artificial']],
+    script: 'Olá, tudo bem? Vi que o contrato de energia de vocês está perto do vencimento. Fiz uma simulação rápida comparando com o que normalmente a CPFL pratica para o perfil da indústria têxtil — saiu uma diferença relevante. Vale 15 minutos pra você dar uma olhada antes de renovar?'
+  }
+};
+
+function openAI(key, btn) {
+  const d = AI_DATA[key];
+  document.getElementById('ai-client-name').textContent = d.name;
+  document.getElementById('ai-body').innerHTML = `
+    <div class="ai-chips">${d.chips.map(c=>`<span class="ai-chip">${c}</span>`).join('')}</div>
+    <div class="ai-block">
+      <div class="ai-block-title">${d.contextTitle}</div>
+      <div class="ai-text">${d.contexto}</div>
+    </div>
+    <div class="ai-block">
+      <div class="ai-block-title">Como abordar</div>
+      <div class="ai-tags">${d.tags.map(([t,l])=>`<span class="ai-tag ai-tag-${t}">${l}</span>`).join('')}</div>
+    </div>
+    <div class="ai-block">
+      <div class="ai-block-title">Script sugerido</div>
+      <div class="ai-script-wrap">
+        <div class="ai-script-text">"${d.script}"</div>
+        <button class="ai-copy" onclick="copyScript(this)" title="Copiar script"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5"/></svg></button>
+      </div>
+    </div>`;
+  document.querySelectorAll('.btn-ai.on').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('painel-main').classList.add('ai-open');
+}
+
+function closeAI() {
+  document.getElementById('painel-main').classList.remove('ai-open');
+  document.querySelectorAll('.btn-ai.on').forEach(b => b.classList.remove('on'));
+}
+
+const ICON_COPY = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5"/></svg>';
+const ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#09bc8a" stroke-width="2"><path d="M3 8l4 4 6-7"/></svg>';
+
+function copyScript(btn) {
+  const text = btn.previousElementSibling.textContent.trim().replace(/^"|"$/g,'');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.innerHTML = ICON_CHECK;
+    btn.style.borderColor = 'rgba(9,188,138,.3)';
+    setTimeout(() => {
+      btn.innerHTML = ICON_COPY;
+      btn.style.borderColor = '';
+    }, 1800);
+  });
+}
+
+function filterUrgency(tag, btn) {
+  document.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+
+  const items = document.querySelectorAll('.urg-item');
+  let visible = 0;
+  items.forEach(item => {
+    const tags = item.dataset.tag || '';
+    const match = tag === 'todos' || tags.split(' ').includes(tag);
+    item.classList.toggle('hidden', !match);
+    if (match) visible++;
+  });
+
+  const label = document.getElementById('urg-hd-label');
+  const count = document.getElementById('urg-count');
+  if (label) {
+    const names = { todos: 'Todos os clientes', atrasado: 'Follow-up atrasado', semana: 'Contatados essa semana', renovacao: 'Renovações próximas' };
+    label.childNodes[0].textContent = (names[tag] || 'Clientes') + ' ';
+    if (count) count.textContent = visible;
+  }
+}
+</script>
+</body>
+</html>

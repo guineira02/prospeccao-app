@@ -3,13 +3,36 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+const ORBS = [
+  { w: 480, h: 480, top: '-10%', left: '-8%',  color: 'rgba(9,188,138,0.18)',  dur: '9s',  tx: '30px',  ty: '-40px', tx2: '-20px', ty2: '25px' },
+  { w: 340, h: 340, top: '50%',  left: '10%',  color: 'rgba(96,165,250,0.12)', dur: '12s', tx: '-25px', ty: '35px',  tx2: '15px',  ty2: '-20px' },
+  { w: 260, h: 260, top: '20%',  left: '40%',  color: 'rgba(0,229,160,0.10)',  dur: '7s',  tx: '20px',  ty: '20px',  tx2: '-15px', ty2: '-25px' },
+  { w: 400, h: 400, top: '60%',  left: '30%',  color: 'rgba(9,188,138,0.08)',  dur: '11s', tx: '35px',  ty: '-20px', tx2: '-30px', ty2: '30px' },
+  { w: 200, h: 200, top: '5%',   left: '60%',  color: 'rgba(251,191,36,0.06)', dur: '8s',  tx: '-10px', ty: '30px',  tx2: '20px',  ty2: '-15px' },
+]
+
+const BOLTS = [
+  { top: '15%', left: '12%',  r: '-15deg', size: 64 },
+  { top: '65%', left: '8%',   r: '20deg',  size: 48 },
+  { top: '35%', left: '48%',  r: '-8deg',  size: 56 },
+  { top: '75%', left: '42%',  r: '30deg',  size: 40 },
+]
+
+function BoltSVG({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#09bc8a" />
+    </svg>
+  )
+}
+
 export default function LoginPage() {
   const router = useRouter()
-  const [modalOpen, setModalOpen] = useState(false)
-  const [email, setEmail] = useState('')
-  const [senha, setSenha] = useState('')
+  const [split, setSplit]     = useState(false)
+  const [email, setEmail]     = useState('')
+  const [senha, setSenha]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [erro, setErro] = useState('')
+  const [erro, setErro]       = useState('')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -34,128 +57,263 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{ backgroundColor: '#15161b' }}>
-
-      {/* Logo */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: '#09bc8a' }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2L14 12H2L8 2Z" fill="#15161b" />
-            </svg>
-          </div>
-          <span className="text-xl font-semibold" style={{ color: '#ffffff' }}>Prospecção</span>
-        </div>
-        <p className="text-sm" style={{ color: '#81869e' }}>
-          Linha do tempo comercial — Nexi
-        </p>
-      </div>
-
-      {/* Card */}
-      <div className="w-full max-w-sm rounded-2xl p-8 border"
-        style={{ backgroundColor: '#1e1f24', borderColor: '#353740' }}>
-        <h1 className="text-lg font-semibold mb-1" style={{ color: '#ffffff' }}>
-          Bem-vindo
-        </h1>
-        <p className="text-sm mb-6" style={{ color: '#81869e' }}>
-          Entre com sua conta da Nexi para continuar
-        </p>
-
-        <button
-          onClick={() => setModalOpen(true)}
-          className="w-full py-3 rounded-xl font-medium text-sm transition-opacity glow-brand"
-          style={{ backgroundColor: '#09bc8a', color: '#15161b' }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          Entrar com a Nexi
-        </button>
-      </div>
-
-      {/* Modal */}
-      {modalOpen && (
+    <div
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        display: 'flex',
+        overflow: 'hidden',
+        background: '#15161b',
+      }}
+    >
+      {/* Animated orbs */}
+      {ORBS.map((orb, i) => (
         <div
-          className="fixed inset-0 flex items-center justify-center px-4 z-50"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-          onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}
-        >
-          <div className="w-full max-w-sm rounded-2xl p-6 border"
-            style={{ backgroundColor: '#1e1f24', borderColor: '#353740' }}>
+          key={i}
+          style={{
+            position: 'absolute',
+            width: orb.w,
+            height: orb.h,
+            top: orb.top,
+            left: orb.left,
+            borderRadius: '50%',
+            background: orb.color,
+            filter: 'blur(60px)',
+            pointerEvents: 'none',
+            animation: `orbFloat ${orb.dur} ease-in-out infinite`,
+            ['--tx' as string]: orb.tx,
+            ['--ty' as string]: orb.ty,
+            ['--tx2' as string]: orb.tx2,
+            ['--ty2' as string]: orb.ty2,
+          }}
+        />
+      ))}
 
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-semibold" style={{ color: '#ffffff' }}>Entrar com a Nexi</h2>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors"
-                style={{ color: '#81869e' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#24262e')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                ✕
-              </button>
+      {/* Bolt icons */}
+      {BOLTS.map((bolt, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            top: bolt.top,
+            left: bolt.left,
+            pointerEvents: 'none',
+            opacity: 0.12,
+            animation: `boltDrift 6s ease-in-out infinite`,
+            animationDelay: `${i * 1.2}s`,
+            ['--r' as string]: bolt.r,
+          }}
+        >
+          <BoltSVG size={bolt.size} />
+        </div>
+      ))}
+
+      {/* Left panel */}
+      <div
+        style={{
+          flex: split ? '0 0 55%' : '0 0 100%',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '4rem',
+          zIndex: 1,
+          transition: 'flex 0.6s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        {/* Logo */}
+        <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: '#09bc8a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(9,188,138,0.4)',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18" />
+              </svg>
+            </div>
+            <span style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px' }}>
+              Prospecção
+            </span>
+          </div>
+
+          <p style={{ color: '#81869e', fontSize: 14, marginBottom: 8 }}>
+            Linha do tempo comercial · Tendência Energia
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '2.5rem 0', alignItems: 'center' }}>
+            {[
+              'Registre cada contato na linha do tempo',
+              'Acompanhe follow-ups em aberto',
+              'Visualize oportunidades por prioridade',
+            ].map((txt, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#81869e', fontSize: 13 }}>
+                <span style={{ color: '#09bc8a', fontWeight: 700 }}>✓</span>
+                {txt}
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setSplit(true)}
+            style={{
+              background: '#09bc8a',
+              color: '#0d1e18',
+              border: 'none',
+              borderRadius: 12,
+              padding: '14px 32px',
+              fontSize: 14,
+              fontWeight: 700,
+              fontFamily: 'Montserrat, sans-serif',
+              cursor: 'pointer',
+              boxShadow: '0 0 24px rgba(9,188,138,0.35)',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Entrar com a Nexi
+          </button>
+        </div>
+      </div>
+
+      {/* Right panel — form */}
+      <div
+        style={{
+          flex: '0 0 45%',
+          background: '#1e1f24',
+          borderLeft: '1px solid #353740',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '3rem',
+          transform: split ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.6s cubic-bezier(0.4,0,0.2,1)',
+          position: split ? 'relative' : 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 2,
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 380 }}>
+          <button
+            onClick={() => setSplit(false)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#81869e',
+              cursor: 'pointer',
+              fontSize: 12,
+              marginBottom: 24,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontFamily: 'Montserrat, sans-serif',
+            }}
+          >
+            ← Voltar
+          </button>
+
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+            Bem-vindo
+          </h1>
+          <p style={{ fontSize: 13, color: '#81869e', marginBottom: 28 }}>
+            Entre com sua conta da Nexi para continuar
+          </p>
+
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#81869e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                E-mail
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                autoFocus
+                placeholder="seu@email.com"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: '#15161b',
+                  border: '1px solid #353740',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: 13,
+                  outline: 'none',
+                  fontFamily: 'Montserrat, sans-serif',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')}
+                onBlur={e => (e.currentTarget.style.borderColor = '#353740')}
+              />
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: '#81869e' }}>
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  autoFocus
-                  placeholder="seu@email.com"
-                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none border transition-colors"
-                  style={{ backgroundColor: '#15161b', borderColor: '#353740', color: '#ffffff' }}
-                  onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')}
-                  onBlur={e => (e.currentTarget.style.borderColor = '#353740')}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: '#81869e' }}>
-                  Senha
-                </label>
-                <input
-                  type="password"
-                  value={senha}
-                  onChange={e => setSenha(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none border transition-colors"
-                  style={{ backgroundColor: '#15161b', borderColor: '#353740', color: '#ffffff' }}
-                  onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')}
-                  onBlur={e => (e.currentTarget.style.borderColor = '#353740')}
-                />
-              </div>
-
-              {erro && (
-                <p className="text-xs px-3 py-2 rounded-lg"
-                  style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
-                  {erro}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 rounded-xl font-medium text-sm transition-all mt-2"
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#81869e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Senha
+              </label>
+              <input
+                type="password"
+                value={senha}
+                onChange={e => setSenha(e.target.value)}
+                required
+                placeholder="••••••••"
                 style={{
-                  backgroundColor: loading ? '#353740' : '#09bc8a',
-                  color: loading ? '#81869e' : '#15161b',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: '#15161b',
+                  border: '1px solid #353740',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: 13,
+                  outline: 'none',
+                  fontFamily: 'Montserrat, sans-serif',
+                  transition: 'border-color 0.2s',
                 }}
-              >
-                {loading ? 'Autenticando...' : 'Entrar'}
-              </button>
-            </form>
-          </div>
+                onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')}
+                onBlur={e => (e.currentTarget.style.borderColor = '#353740')}
+              />
+            </div>
+
+            {erro && (
+              <div style={{ padding: '10px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 8, color: '#ef4444', fontSize: 12 }}>
+                {erro}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                background: loading ? '#353740' : '#09bc8a',
+                color: loading ? '#81869e' : '#0d1e18',
+                border: 'none',
+                borderRadius: 10,
+                padding: '12px',
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: 'Montserrat, sans-serif',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                marginTop: 4,
+                transition: 'all 0.2s',
+              }}
+            >
+              {loading ? 'Autenticando...' : 'Entrar'}
+            </button>
+          </form>
         </div>
-      )}
+      </div>
     </div>
   )
 }
