@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { createClient } from '@supabase/supabase-js'
+import { nexiLogin } from '@/lib/nexi'
 
 export async function POST(req: NextRequest) {
   const { email, senha } = await req.json()
@@ -8,6 +9,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email e senha obrigatórios' }, { status: 400 })
   }
 
+  // 1. Valida credenciais na Nexi (login_mobile)
+  const nexi = await nexiLogin(email, senha)
+  if (!nexi) {
+    return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
+  }
+
+  // 2. Abre/cria a sessão correspondente no Supabase.
+  //    Senha do Supabase = hash estável do user_id Nexi (o agente nunca a digita;
+  //    a verdade da autenticação é a Nexi, o Supabase só guarda a sessão + RLS).
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -15,36 +25,31 @@ export async function POST(req: NextRequest) {
   )
   const admin = getSupabaseAdmin()
 
-  const { data: signIn, error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password: senha,
-  })
+  const emailNorm = String(email).trim().toLowerCase()
+  const supaPass  = `nexi:${nexi.user_id}`
+  const metadata  = { nome: nexi.nome, cargo: nexi.cargo, nexi_id: nexi.user_id }
 
-  let session = signIn?.session
+  // Procura o shadow user existente por e-mail.
+  const { data: list } = await admin.auth.admin.listUsers()
+  const existente = list?.users?.find(u => u.email?.toLowerCase() === emailNorm)
 
-  if (signInError) {
-    const { error: createError } = await admin.auth.admin.createUser({
-      email,
-      password: senha,
-      email_confirm: true,
-      user_metadata: {
-        nome: email.split('@')[0],
-        cargo: 'Agente Comercial',
-        nexi_id: email,
-      },
-    })
-    if (createError) {
-      return NextResponse.json({ error: 'Erro ao criar conta' }, { status: 500 })
-    }
-    const { data: retry } = await supabase.auth.signInWithPassword({ email, password: senha })
-    session = retry?.session
+  if (existente) {
+    // reseta a senha shadow + atualiza metadata (a verdade é a Nexi)
+    await admin.auth.admin.updateUserById(existente.id, { password: supaPass, user_metadata: metadata })
+  } else {
+    await admin.auth.admin.createUser({ email: emailNorm, password: supaPass, email_confirm: true, user_metadata: metadata })
   }
 
+  const { data: signIn } = await supabase.auth.signInWithPassword({ email: emailNorm, password: supaPass })
+  const session = signIn?.session
   if (!session) {
-    return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
+    return NextResponse.json({ error: 'Falha ao abrir sessão' }, { status: 500 })
   }
 
-  const res = NextResponse.json({ ok: true })
+  const res = NextResponse.json({
+    ok: true,
+    agente: { nome: nexi.nome, cargo: nexi.cargo },
+  })
 
   res.cookies.set('sb-access-token', session.access_token, {
     httpOnly: true,

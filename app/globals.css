@@ -74,6 +74,29 @@ body {
   to   { transform: translateX(0); opacity: 1; }
 }
 
+/* ── Modo Atendimento — deck de cards ── */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes cardOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(-40px) scale(0.97); }
+}
+
+/* ── Command palette ── */
+@keyframes paletteIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.15); }
+}
+
+kbd { font-family: 'Montserrat', monospace; }
+
 /* ── App Shell ── */
 .shell {
   display: flex;

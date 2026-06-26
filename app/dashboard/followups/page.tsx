@@ -1,201 +1,91 @@
 'use client'
 
-import { useState } from 'react'
-import { CustomSelect } from '@/app/components/CustomSelect'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ESTAGIO_COLOR, diasAtraso, type Estagio } from '@/lib/constants'
 
-interface FuRow {
-  nome:   string
-  uf:     string
-  ctx:    string
-  hint:   string
-  delay:  string
-  color:  string
-  dotColor: string
-}
-
-const OVERDUE: FuRow[] = [
-  { nome: 'Metalúrgica São Paulo Ltda',    uf: 'SP', ctx: 'Não atendeu · proposta enviada',     hint: '📞 Ligar pela manhã',        delay: '5 dias', color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Cerâmica Vale do Rio S.A.',      uf: 'MG', ctx: 'E-mail sem resposta',                hint: '📞 Ligar agora',             delay: '4 dias', color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Distribuidora Nordeste Ltda',    uf: 'BA', ctx: 'Comprometeu retorno · não ligou',    hint: '📞 Lembrete gentil',         delay: '2 dias', color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Agropecuária Planalto',          uf: 'GO', ctx: 'Proposta enviada ontem',             hint: '📞 Confirmar recebimento',   delay: '1 dia',  color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Porto Seco Logística',           uf: 'RS', ctx: 'Não atendeu ontem',                  hint: '📞 Tentar outro horário',    delay: '1 dia',  color: '#ef4444', dotColor: '#ef4444' },
-]
-
-const TODAY: FuRow[] = [
-  { nome: 'Frigorífico Norte S.A.',         uf: 'PA', ctx: 'Reunião agendada · Renova em 3 meses', hint: '👥 Reunião',              delay: '14h00', color: '#09bc8a', dotColor: '#09bc8a' },
-  { nome: 'Cooperativa Agrícola Triângulo', uf: 'MG', ctx: 'Proposta em análise interna',         hint: '📞 Ligar',                delay: '16h00', color: '#09bc8a', dotColor: '#09bc8a' },
-]
-
-const WEEK: FuRow[] = [
-  { nome: 'Madeireira Pinheiro Ltda',       uf: 'SC', ctx: 'Pediu proposta · enviar antes',       hint: '📄 Enviar proposta',       delay: 'Sex',   color: '#60a5fa', dotColor: '#60a5fa' },
-  { nome: 'Indústria Têxtil Modernidade',   uf: 'SP', ctx: '⚠ Contrato vence em 2 meses · CPFL',  hint: '📞 Ligar com comparativo', delay: 'Sex',   color: '#fbbf24', dotColor: '#fbbf24' },
-  { nome: 'Laticínios Montanha Ltda',        uf: 'MG', ctx: 'Pediu material de migração',         hint: '✉ Enviar material',        delay: 'Seg',   color: '#60a5fa', dotColor: '#60a5fa' },
-  { nome: 'Construtora Ômega S.A.',          uf: 'RJ', ctx: 'Reunião reagendada · diretor ausente', hint: '👥 Reunião',             delay: 'Seg',   color: '#60a5fa', dotColor: '#60a5fa' },
-]
-
-const GROUPS = [
-  { title: 'Em atraso',    labelColor: '#ef4444', count: `${OVERDUE.length} clientes`, rows: OVERDUE },
-  { title: 'Hoje',         labelColor: '#09bc8a', count: `${TODAY.length} agendados`,  rows: TODAY   },
-  { title: 'Esta semana',  labelColor: '#81869e', count: `${WEEK.length} agendados`,   rows: WEEK    },
-]
-
-const TOTAL   = OVERDUE.length + TODAY.length + WEEK.length
-const DONE    = 3
-const PROGPCT = Math.round((DONE / (DONE + TOTAL - TODAY.length)) * 100)
-
-function RegModal({ onClose }: { onClose: () => void }) {
-  const TIPOS  = ['Ligacao', 'Email', 'Reuniao', 'Proposta', 'Declinio']
-  const STATUS = ['Atendeu', 'Nao atendeu', 'Agendou retorno', 'Cliente recusou']
-  const [tipo, setTipo]     = useState('')
-  const [status, setStatus] = useState('')
-  const [nota, setNota]     = useState('')
-
-  return (
-    <div
-      style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div style={{ width: '100%', maxWidth: 420, background: '#1e1f24', border: '1px solid #353740', borderRadius: 16, padding: '1.5rem', animation: 'modalIn 0.25s ease both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Registrar contato</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#81869e', fontSize: 18, cursor: 'pointer' }}>✕</button>
-        </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>Tipo</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {TIPOS.map(t => (
-              <button key={t} onClick={() => setTipo(t)} style={{
-                padding: '5px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                border: `1px solid ${tipo === t ? '#09bc8a' : '#353740'}`,
-                background: tipo === t ? 'rgba(9,188,138,0.12)' : 'transparent',
-                color: tipo === t ? '#09bc8a' : '#81869e',
-                cursor: 'pointer', fontFamily: 'Montserrat, sans-serif',
-              }}>{t}</button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>Status</label>
-          <CustomSelect
-            value={status}
-            onChange={setStatus}
-            options={[...STATUS]}
-            placeholder="Selecionar..."
-          />
-        </div>
-
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>Observação</label>
-          <textarea rows={3} value={nota} onChange={e => setNota(e.target.value)} placeholder="O que aconteceu?" style={{
-            width: '100%', padding: '9px 12px', background: '#15161b',
-            border: '1px solid #353740', borderRadius: 10, color: '#fff',
-            fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'Montserrat, sans-serif',
-          }} onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')} onBlur={e => (e.currentTarget.style.borderColor = '#353740')} />
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #353740', borderRadius: 10, color: '#81869e', fontSize: 13, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}>
-            Cancelar
-          </button>
-          <button onClick={onClose} style={{ flex: 2, padding: '10px', background: '#09bc8a', color: '#0d1e18', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}>
-            Salvar
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function FuRowItem({ row, onReg }: { row: FuRow; onReg: () => void }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #353740' }}>
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: row.dotColor, flexShrink: 0 }} />
-      <div style={{
-        minWidth: 44,
-        fontSize: 11,
-        fontWeight: 700,
-        color: row.color,
-        flexShrink: 0,
-      }}>
-        {row.delay}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>
-          {row.nome}
-        </div>
-        <div style={{ fontSize: 11, color: '#81869e' }}>{row.uf} · {row.ctx}</div>
-      </div>
-      <span style={{ fontSize: 11, color: '#81869e', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-        {row.hint}
-      </span>
-      <button
-        onClick={onReg}
-        style={{
-          padding: '5px 10px',
-          borderRadius: 8,
-          fontSize: 11,
-          fontWeight: 600,
-          border: '1px solid #353740',
-          background: 'transparent',
-          color: '#81869e',
-          cursor: 'pointer',
-          fontFamily: 'Montserrat, sans-serif',
-          flexShrink: 0,
-          transition: 'all 0.15s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#09bc8a'; e.currentTarget.style.color = '#09bc8a' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#353740'; e.currentTarget.style.color = '#81869e' }}
-      >
-        Registrar
-      </button>
-    </div>
-  )
+interface Cliente {
+  id: string; nome: string; uf: string; regiao: string
+  estagio: Estagio; proximoFollowUp: string | null; concorrente: string | null
 }
 
 export default function FollowUpsPage() {
-  const [modalOpen, setModalOpen] = useState(false)
+  const router = useRouter()
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [loading, setLoading]   = useState(true)
+
+  useEffect(() => {
+    fetch('/api/clientes')
+      .then(r => { if (r.status === 401) { router.push('/'); return null } return r.json() })
+      .then(d => { if (d) setClientes(d.clientes ?? []) })
+      .finally(() => setLoading(false))
+  }, [router])
+
+  const grupos = useMemo(() => {
+    const comFU = clientes.map(c => ({ c, atraso: diasAtraso(c.proximoFollowUp) })).filter(x => x.atraso !== null)
+    const atrasado = comFU.filter(x => (x.atraso ?? 0) > 0).sort((a, b) => (b.atraso ?? 0) - (a.atraso ?? 0))
+    const hoje     = comFU.filter(x => x.atraso === 0)
+    const semana   = comFU.filter(x => (x.atraso ?? 0) < 0 && (x.atraso ?? 0) >= -7).sort((a, b) => (a.atraso ?? 0) - (b.atraso ?? 0))
+    return [
+      { title: 'Em atraso',   color: '#ef4444', rows: atrasado },
+      { title: 'Hoje',        color: '#09bc8a', rows: hoje },
+      { title: 'Próximos 7 dias', color: '#60a5fa', rows: semana },
+    ]
+  }, [clientes])
+
+  const total = grupos.reduce((s, g) => s + g.rows.length, 0)
+
+  function goCliente(c: Cliente) {
+    sessionStorage.setItem(`cli_${c.id}`, JSON.stringify(c))
+    router.push(`/dashboard/${c.id}`)
+  }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 860, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Follow-ups</h1>
-          <p style={{ fontSize: 13, color: '#81869e' }}>
-            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' })} · {TOTAL} pendentes
-          </p>
-        </div>
+    <div style={{ padding: '1.75rem 2.25rem', maxWidth: 880, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 4, letterSpacing: '-0.4px' }}>Follow-ups</h1>
+      <p style={{ fontSize: 13, color: '#81869e', marginBottom: '1.75rem' }}>
+        {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' })} · {total} pendentes
+      </p>
 
-        {/* Progress */}
-        <div style={{ textAlign: 'right', minWidth: 160 }}>
-          <div style={{ fontSize: 11, color: '#81869e', marginBottom: 6 }}>Concluídos hoje</div>
-          <div style={{ height: 6, background: '#1e1f24', borderRadius: 3, marginBottom: 5, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${PROGPCT}%`, background: '#09bc8a', borderRadius: 3, transition: 'width 0.5s ease' }} />
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#09bc8a' }}>{DONE} / {DONE + TOTAL - TODAY.length}</div>
+      {loading && <div style={{ textAlign: 'center', padding: '4rem', color: '#81869e', fontSize: 13 }}>Carregando...</div>}
+      {!loading && total === 0 && (
+        <div style={{ textAlign: 'center', padding: '4rem', color: '#81869e', fontSize: 13 }}>
+          Nenhum follow-up agendado.<br/>
+          <span style={{ fontSize: 12 }}>Registre contatos no Modo Atendimento para gerar follow-ups.</span>
         </div>
-      </div>
+      )}
 
-      {/* Groups */}
-      {GROUPS.map(group => (
-        <div key={group.title} style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: group.labelColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {group.title}
-            </span>
-            <span style={{ fontSize: 12, color: '#81869e' }}>{group.count}</span>
+      {!loading && grupos.map(g => g.rows.length > 0 && (
+        <div key={g.title} style={{ marginBottom: '1.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: g.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{g.title}</span>
+            <span style={{ fontSize: 12, color: '#81869e' }}>{g.rows.length}</span>
           </div>
-          <div style={{ background: '#1e1f24', border: '1px solid #353740', borderRadius: 12, padding: '0 16px' }}>
-            {group.rows.map((row, i) => (
-              <FuRowItem key={i} row={row} onReg={() => setModalOpen(true)} />
+          <div style={{ background: '#1e1f24', border: '1px solid #353740', borderRadius: 14, overflow: 'hidden' }}>
+            {g.rows.map(({ c, atraso }, i) => (
+              <button key={c.id} onClick={() => goCliente(c)} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
+                background: 'transparent', border: 'none', borderBottom: i < g.rows.length - 1 ? '1px solid #2a2c34' : 'none',
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: g.color, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nome}</div>
+                  <div style={{ fontSize: 11, color: '#81869e' }}>{c.uf} · {c.estagio}{c.concorrente ? ` · vs ${c.concorrente}` : ''}</div>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: g.color, flexShrink: 0 }}>
+                  {(atraso ?? 0) > 0 ? `${atraso}d atraso` : atraso === 0 ? 'hoje' : `em ${-(atraso ?? 0)}d`}
+                </span>
+                <span style={{ ...estBadge(c.estagio) }}>{c.estagio}</span>
+              </button>
             ))}
           </div>
         </div>
       ))}
-
-      {modalOpen && <RegModal onClose={() => setModalOpen(false)} />}
     </div>
   )
+}
+
+function estBadge(e: Estagio): React.CSSProperties {
+  return { fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 20, flexShrink: 0, color: ESTAGIO_COLOR[e], background: `${ESTAGIO_COLOR[e]}1c`, border: `1px solid ${ESTAGIO_COLOR[e]}40` }
 }

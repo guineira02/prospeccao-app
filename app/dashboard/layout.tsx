@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { CommandPalette } from '@/app/components/CommandPalette'
 
 const NAV = [
   {
@@ -9,7 +11,16 @@ const NAV = [
     label: 'Meus Clientes',
     icon: (
       <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: 15, height: 15 }}>
-        <path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" />
+        <path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H9z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/dashboard/atender',
+    label: 'Atender',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: 15, height: 15 }}>
+        <path d="M4 2l9 6-9 6z" />
       </svg>
     ),
   },
@@ -32,11 +43,28 @@ const NAV = [
       </svg>
     ),
   },
+  {
+    href: '/dashboard/perfil',
+    label: 'Notificações',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 15, height: 15 }}>
+        <path d="M8 1.5a4 4 0 00-4 4c0 4-1.5 5-1.5 5h11s-1.5-1-1.5-5a4 4 0 00-4-4z" />
+        <path d="M6.5 13.5a1.5 1.5 0 003 0" />
+      </svg>
+    ),
+  },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [agente, setAgente] = useState<{ nome: string; cargo: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/me').then(r => r.ok ? r.json() : null).then(d => { if (d) setAgente({ nome: d.nome, cargo: d.cargo }) }).catch(() => {})
+  }, [])
+
+  const iniciais = (agente?.nome ?? 'Agente').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -105,6 +133,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </div>
 
+        {/* Cmd+K hint */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', marginBottom: 4, borderRadius: 8, background: '#15161b', border: '1px solid #2a2c34', fontSize: 11.5, color: '#81869e' }}>
+          <span>Busca rápida</span>
+          <kbd style={{ fontSize: 10, color: '#81869e', border: '1px solid #353740', borderRadius: 5, padding: '2px 6px' }}>⌘K</kbd>
+        </div>
+
         {/* Footer */}
         <div style={{ borderTop: '1px solid #353740', paddingTop: '1rem', marginTop: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -115,11 +149,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               fontSize: 12, fontWeight: 700, color: '#0d1e18',
               flexShrink: 0,
             }}>
-              GS
+              {iniciais}
             </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Agente</div>
-              <div style={{ fontSize: 11, color: '#81869e' }}>Tendência Energia</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agente?.nome ?? 'Agente'}</div>
+              <div style={{ fontSize: 11, color: '#81869e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agente?.cargo || 'Comercial'}</div>
             </div>
           </div>
           <button
@@ -155,6 +189,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="main">
         {children}
       </div>
+
+      <CommandPalette />
     </div>
   )
 }

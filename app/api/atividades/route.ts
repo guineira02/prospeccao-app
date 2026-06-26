@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForUser } from '@/lib/supabase-server'
-
-const TIPOS_VALIDOS   = ['Ligacao', 'Email', 'Reuniao', 'Proposta', 'Declinio'] as const
-const STATUS_VALIDOS  = ['Atendeu', 'Nao atendeu', 'Agendou retorno', 'Cliente recusou'] as const
+import { TIPOS, STATUS } from '@/lib/constants'
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('sb-access-token')?.value
@@ -13,31 +11,44 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { cliente_id, tipo, status, comentario, follow_up_data } = body
 
-  if (!cliente_id || !tipo || !status) {
-    return NextResponse.json({ error: 'cliente_id, tipo e status são obrigatórios' }, { status: 400 })
+  // Suporta registro único OU em lote (ações em massa).
+  // body.cliente_ids = string[]  → cria a mesma atividade para vários clientes.
+  const ids: string[] = Array.isArray(body.cliente_ids)
+    ? body.cliente_ids
+    : body.cliente_id ? [body.cliente_id] : []
+
+  const { tipo, status, comentario, follow_up_data } = body
+
+  if (ids.length === 0 || !tipo || !status) {
+    return NextResponse.json({ error: 'cliente(s), tipo e status são obrigatórios' }, { status: 400 })
   }
-  if (!TIPOS_VALIDOS.includes(tipo)) {
-    return NextResponse.json({ error: `tipo inválido. Aceitos: ${TIPOS_VALIDOS.join(', ')}` }, { status: 400 })
+  if (!TIPOS.includes(tipo)) {
+    return NextResponse.json({ error: `tipo inválido. Aceitos: ${TIPOS.join(', ')}` }, { status: 400 })
   }
-  if (!STATUS_VALIDOS.includes(status)) {
-    return NextResponse.json({ error: `status inválido. Aceitos: ${STATUS_VALIDOS.join(', ')}` }, { status: 400 })
+  if (!STATUS.includes(status)) {
+    return NextResponse.json({ error: `status inválido. Aceitos: ${STATUS.join(', ')}` }, { status: 400 })
   }
+
+  const rows = ids.map(cliente_id => ({
+    agente_id:      user.id,
+    cliente_id,
+    tipo,
+    status,
+    comentario:     comentario ?? null,
+    follow_up_data: follow_up_data ?? null,
+  }))
 
   const { data, error } = await supabase
     .from('pt_atividades')
-    .insert({
-      agente_id:      user.id,
-      cliente_id,
-      tipo,
-      status,
-      comentario:     comentario ?? null,
-      follow_up_data: follow_up_data ?? null,
-    })
+    .insert(rows)
     .select()
-    .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ atividade: data }, { status: 201 })
+
+  // único → devolve a atividade; lote → devolve contagem
+  if (rows.length === 1) {
+    return NextResponse.json({ atividade: data?.[0] }, { status: 201 })
+  }
+  return NextResponse.json({ criadas: data?.length ?? 0, atividades: data }, { status: 201 })
 }
