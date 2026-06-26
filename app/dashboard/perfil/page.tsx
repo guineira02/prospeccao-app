@@ -35,6 +35,8 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
   const [ok, setOk]           = useState(false)
+  const [testando, setTestando] = useState(false)
+  const [testeMsg, setTesteMsg] = useState<{ tipo: 'ok' | 'erro'; txt: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/preferencias').then(r => r.json()).then(d => {
@@ -62,6 +64,19 @@ export default function PerfilPage() {
     setPrefs(p => p ? { ...p, [k]: v } : p)
   }
 
+  async function enviarTeste() {
+    if (!prefs) return
+    setTestando(true); setTesteMsg(null)
+    const res = await fetch('/api/notificacoes/teste', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: prefs.whatsapp_contato }),
+    })
+    const d = await res.json().catch(() => ({}))
+    setTestando(false)
+    if (res.ok) setTesteMsg({ tipo: 'ok', txt: '✓ Enviado! Confira seu WhatsApp.' })
+    else setTesteMsg({ tipo: 'erro', txt: d.error || 'Falha ao enviar teste.' })
+  }
+
   return (
     <div style={{ padding: '2rem 2.25rem', maxWidth: 600, margin: '0 auto' }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 4, letterSpacing: '-0.4px' }}>Notificações</h1>
@@ -86,6 +101,24 @@ export default function PerfilPage() {
               <input value={prefs.whatsapp_contato} onChange={e => upd('whatsapp_contato', maskTelefone(e.target.value))} placeholder="(00) 00000-0000" inputMode="numeric"
                 style={{ width: '100%', padding: '10px 12px', background: '#15161b', border: '1px solid #353740', borderRadius: 10, color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
                 onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')} onBlur={e => (e.currentTarget.style.borderColor = '#353740')} />
+            )}
+            {prefs.notif_whatsapp && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                <button onClick={enviarTeste} disabled={testando} style={{
+                  padding: '8px 14px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
+                  border: '1px solid #25d36655', background: 'rgba(37,211,102,0.1)', color: '#25d366',
+                  cursor: testando ? 'not-allowed' : 'pointer', transition: 'background 0.15s',
+                }}
+                  onMouseEnter={e => { if (!testando) e.currentTarget.style.background = 'rgba(37,211,102,0.18)' }}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(37,211,102,0.1)')}>
+                  {testando ? 'Enviando...' : '📲 Enviar teste'}
+                </button>
+                {testeMsg && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: testeMsg.tipo === 'ok' ? '#09bc8a' : '#ef4444' }}>
+                    {testeMsg.txt}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
