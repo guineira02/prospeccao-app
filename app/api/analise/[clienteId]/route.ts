@@ -80,14 +80,27 @@ Analise este cliente e sugira a próxima abordagem. Seja específico ao que real
       })
     }
     if (new URL(req.url).searchParams.get('debug') === '2') {
+      // raw fetch com a key do getSecret
+      let rawStatus = 0, rawBody = ''
+      try {
+        const rr = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: MODEL, max_tokens: 10, messages: [{ role: 'user', content: 'oi' }] }),
+        })
+        rawStatus = rr.status; rawBody = (await rr.text()).slice(0, 120)
+      } catch (e) { rawBody = e instanceof Error ? e.message : 'erro' }
+      // SDK com a mesma key
+      let sdkStatus = 0, sdkMsg = ''
       try {
         const cli = new Anthropic({ apiKey })
-        const m = await cli.messages.create({ model: MODEL, max_tokens: 10, messages: [{ role: 'user', content: 'oi' }] } as Anthropic.MessageCreateParamsNonStreaming)
-        return NextResponse.json({ ok: true, txt: m.content })
+        await cli.messages.create({ model: MODEL, max_tokens: 10, messages: [{ role: 'user', content: 'oi' }] } as Anthropic.MessageCreateParamsNonStreaming)
+        sdkStatus = 200
       } catch (err) {
-        const e = err as { name?: string; status?: number; message?: string; error?: unknown }
-        return NextResponse.json({ debug2: true, name: e.name, status: e.status, message: (e.message || '').slice(0, 200), body: e.error })
+        const e = err as { status?: number; message?: string }
+        sdkStatus = e.status ?? -1; sdkMsg = (e.message || '').slice(0, 120)
       }
+      return NextResponse.json({ keyTail: apiKey.slice(-6), rawStatus, rawBody, sdkStatus, sdkMsg })
     }
     const anthropic = new Anthropic({ apiKey })
     const msg = await anthropic.messages.create({
