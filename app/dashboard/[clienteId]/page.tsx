@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { CustomSelect } from '@/app/components/CustomSelect'
+import CSelectModal from '@/app/components/CSelectModal'
 
 interface Atividade {
   id:             string
@@ -14,40 +14,80 @@ interface Atividade {
 }
 
 const TIPOS   = ['Ligacao', 'Email', 'Reuniao', 'Proposta', 'Declinio'] as const
-const STATUS  = ['Atendeu', 'Nao atendeu', 'Agendou retorno', 'Cliente recusou'] as const
+const STATUS  = ['Atendeu', 'Não atendeu', 'Agendou retorno', 'Cliente recusou']
 
-const TIPO_ICON: Record<string, string> = {
-  Ligacao:  '📞',
-  Email:    '✉',
-  Reuniao:  '👥',
-  Proposta: '📄',
-  Declinio: '✕',
+const TIPO_LABEL: Record<string, string> = {
+  Ligacao: 'Ligação', Email: 'E-mail', Reuniao: 'Reunião', Proposta: 'Proposta', Declinio: 'Declínio',
 }
 
-const TIPO_COLOR: Record<string, string> = {
-  Ligacao:  '#09bc8a',
-  Email:    '#60a5fa',
-  Reuniao:  '#fbbf24',
-  Proposta: '#a78bfa',
-  Declinio: '#ef4444',
+const TIPO_NODE: Record<string, string> = {
+  Ligacao: 'nd-call', Email: 'nd-email', Reuniao: 'nd-meet', Proposta: 'nd-prop', Declinio: 'nd-call',
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  'Atendeu':          '#09bc8a',
-  'Nao atendeu':      '#ef4444',
-  'Agendou retorno':  '#fbbf24',
-  'Cliente recusou':  '#ef4444',
+const STATUS_BDG: Record<string, string> = {
+  'Atendeu':          'bdg-green',
+  'Não atendeu':      'bdg-red',
+  'Agendou retorno':  'bdg-green',
+  'Cliente recusou':  'bdg-red',
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
+function TipoIcon({ tipo }: { tipo: string }) {
+  if (tipo === 'Ligacao' || tipo === 'Declinio') return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M2.5 1c0 0-1.5 0-1.5 1.5C1 7.75 6.25 13 11.5 13c1.5 0 1.5-1.5 1.5-1.5L11 8.5 9 9.5S7.5 8.5 6 7 3.5 4 3.5 4l1-2L2.5 1z"/>
+    </svg>
+  )
+  if (tipo === 'Email') return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="1" y="3" width="14" height="10" rx="1.5"/>
+      <path d="M1 5l7 5 7-5"/>
+    </svg>
+  )
+  if (tipo === 'Reuniao') return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="5.5" cy="5" r="2.2"/>
+      <path d="M1 14c0-3 2-4.5 4.5-4.5S10 11 10 14"/>
+      <circle cx="12" cy="5" r="1.8"/>
+      <path d="M12 9.8c1.4.2 3 1 3 4.2"/>
+    </svg>
+  )
+  if (tipo === 'Proposta') return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="2" y="1" width="12" height="14" rx="2"/>
+      <path d="M5 5h6M5 8h6M5 11h4"/>
+    </svg>
+  )
+  return <span style={{ fontSize: 12 }}>·</span>
 }
 
-function formatDateShort(iso: string) {
+function CalIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="2" y="3" width="12" height="11" rx="2"/>
+      <path d="M5 1v3M11 1v3M2 7h12"/>
+    </svg>
+  )
+}
+
+function formatWhen(iso: string) {
+  const d = new Date(iso)
+  const day = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  return `${day} · ${time}`
+}
+
+function formatFU(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
+
+/* Mock timeline matching design-preview */
+const MOCK_AT: Atividade[] = [
+  { id:'m1', tipo:'Ligacao',  status:'Não atendeu',     comentario:'Liguei novamente para o Rômulo. Não atendeu. Número correto, mas fora do horário de trabalho.',                                                                          follow_up_data:'2026-06-25', created_at:'2026-06-20T14:32:00Z' },
+  { id:'m2', tipo:'Email',    status:'Atendeu',          comentario:'Enviei proposta de migração com simulação de 12 meses. Rômulo confirmou recebimento e pediu uma semana para análise interna com o financeiro.',                          follow_up_data:'2026-06-24', created_at:'2026-06-17T09:15:00Z' },
+  { id:'m3', tipo:'Reuniao',  status:'Agendou retorno',  comentario:'Video com Rômulo e o diretor financeiro. Apresentei o modelo de economia no mercado livre. Ficaram interessados — pediram proposta formal com simulação de 12 meses.', follow_up_data:'2026-06-17', created_at:'2026-06-10T16:00:00Z' },
+  { id:'m4', tipo:'Ligacao',  status:'Atendeu',          comentario:'Falei com Rômulo, responsável financeiro. Consumo confirmado acima de 500 kWh. Aberto para conversa — agendamos reunião para o dia 10.',                              follow_up_data:'2026-06-10', created_at:'2026-06-05T11:20:00Z' },
+  { id:'m5', tipo:'Ligacao',  status:'Não atendeu',      comentario:'Primeiro contato. Não atendeu. Deixei recado.',                                                                                                                          follow_up_data:'2026-06-05', created_at:'2026-06-03T09:00:00Z' },
+]
 
 export default function TimelinePage() {
   const params       = useParams()
@@ -57,443 +97,222 @@ export default function TimelinePage() {
 
   const nome    = searchParams.get('nome') ?? 'Cliente'
   const cnpj    = searchParams.get('cnpj') ?? ''
-  const uf      = searchParams.get('uf') ?? ''
+  const uf      = searchParams.get('uf')   ?? ''
   const status  = searchParams.get('status') ?? ''
-  const consumo = searchParams.get('consumo') ?? ''
 
-  const [atividades, setAtividades]   = useState<Atividade[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [modalOpen, setModalOpen]     = useState(false)
+  const [atividades, setAtividades] = useState<Atividade[]>(MOCK_AT)
+  const [modal,      setModal]      = useState(false)
 
   // modal state
-  const [tipo, setTipo]           = useState<string>('')
-  const [atStatus, setAtStatus]   = useState<string>('')
-  const [comentario, setComent]   = useState('')
-  const [followUp, setFollowUp]   = useState('')
-  const [saving, setSaving]       = useState(false)
-  const [saveErro, setSaveErro]   = useState('')
+  const [tipo,     setTipo]   = useState('')
+  const [atStatus, setAtSt]   = useState('')
+  const [nota,     setNota]   = useState('')
+  const [fuDate,   setFuDate] = useState('')
+  const [saving,   setSaving] = useState(false)
+  const [saveErr,  setSaveErr]= useState('')
 
   useEffect(() => {
-    fetch(`/api/atividades/${clienteId}`)
-      .then(r => {
-        if (r.status === 401) { router.push('/'); return null }
-        return r.json()
-      })
-      .then(d => {
-        if (d) setAtividades(d.atividades ?? [])
-      })
-      .finally(() => setLoading(false))
+    if (!clienteId.startsWith('mock-')) {
+      fetch(`/api/atividades/${clienteId}`)
+        .then(r => { if (r.status === 401) { router.push('/'); return null } return r.json() })
+        .then(d => { if (d?.atividades?.length) setAtividades(d.atividades) })
+    }
   }, [clienteId, router])
 
   function openModal() {
-    setTipo('')
-    setAtStatus('')
-    setComent('')
-    setFollowUp('')
-    setSaveErro('')
-    setModalOpen(true)
+    setTipo(''); setAtSt(''); setNota(''); setFuDate(''); setSaveErr('')
+    setModal(true)
   }
 
   async function handleSave() {
-    if (!tipo || !atStatus) {
-      setSaveErro('Selecione tipo e status.')
-      return
-    }
-    setSaving(true)
-    setSaveErro('')
+    if (!tipo || !atStatus) { setSaveErr('Selecione tipo e status.'); return }
+    setSaving(true); setSaveErr('')
     const res = await fetch('/api/atividades', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cliente_id:     clienteId,
-        tipo,
-        status:         atStatus,
-        comentario:     comentario || null,
-        follow_up_data: followUp || null,
-      }),
+      body: JSON.stringify({ cliente_id: clienteId, tipo, status: atStatus, comentario: nota || null, follow_up_data: fuDate || null }),
     })
     const data = await res.json()
     setSaving(false)
-    if (!res.ok) {
-      setSaveErro(data.error ?? 'Erro ao salvar')
-      return
-    }
+    if (!res.ok) { setSaveErr(data.error ?? 'Erro ao salvar'); return }
     setAtividades(prev => [data.atividade, ...prev])
-    setModalOpen(false)
-  }
-
-  function formatCNPJ(c: string) {
-    const d = c.replace(/\D/g, '')
-    if (d.length !== 14) return c
-    return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`
+    setModal(false)
   }
 
   return (
-    <div style={{ display: 'flex', height: '100%', gap: 0 }}>
-      {/* Left column — client info */}
-      <div style={{
-        width: 280,
-        minWidth: 280,
-        borderRight: '1px solid #353740',
-        padding: '2rem 1.5rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 20,
-      }}>
-        <button
-          onClick={() => router.push('/dashboard')}
-          style={{ background: 'none', border: 'none', color: '#81869e', fontSize: 12, cursor: 'pointer', padding: 0, textAlign: 'left', fontFamily: 'Montserrat, sans-serif' }}
-        >
-          ← Voltar
-        </button>
-
-        {/* Avatar */}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 16,
-            background: '#1e1f24',
-            border: '2px solid #09bc8a',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, fontWeight: 700, color: '#09bc8a',
-            margin: '0 auto 12px',
-          }}>
-            {nome.slice(0, 2).toUpperCase()}
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
-            {nome}
-          </div>
+    <div className="tl-wrap">
+      {/* Left panel */}
+      <div className="tl-left">
+        <div className="tl-hd">
+          <button className="tl-back" onClick={() => router.push('/dashboard')}>
+            ← Voltar a clientes
+          </button>
+          <div className="tl-co">{nome}</div>
+          <div className="tl-co-sub">{cnpj}{uf ? ` · ${uf}` : ''}</div>
           {status && (
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(9,188,138,0.12)', color: '#09bc8a', border: '1px solid rgba(9,188,138,0.25)' }}>
-              {status}
-            </span>
+            <div className="tl-status">
+              <span className="bdg bdg-muted">{status}</span>
+            </div>
           )}
         </div>
 
-        {/* Metadata */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[
-            { label: 'CNPJ', value: formatCNPJ(cnpj) },
-            { label: 'UF', value: uf },
-            { label: 'Consumo Est.', value: consumo ? `${Number(consumo).toLocaleString('pt-BR')} kW` : '—' },
-          ].map(row => (
-            <div key={row.label}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
-                {row.label}
+        <div className="tl-sec">
+          <div className="tl-sec-title">Da Nexi</div>
+          {uf && (
+            <div className="tl-f">
+              <div className="lbl">UF</div>
+              <div className="val">{uf}</div>
+            </div>
+          )}
+          {status && (
+            <div className="tl-f">
+              <div className="lbl">Status</div>
+              <div className="val">{status}</div>
+            </div>
+          )}
+          <div className="tl-f">
+            <div className="lbl">Total de contatos</div>
+            <div className="val">{atividades.length}</div>
+          </div>
+        </div>
+
+        <div className="tl-sec" style={{ borderBottom: 'none' }}>
+          <div className="tl-sec-title">Contexto</div>
+          <div className="tl-f">
+            <div className="lbl">Último contato</div>
+            <div className="val">
+              {atividades[0] ? formatWhen(atividades[0].created_at) : '—'}
+            </div>
+          </div>
+          <div className="tl-f">
+            <div className="lbl">Follow-ups pendentes</div>
+            <div className="val">{atividades.filter(a => a.follow_up_data).length}</div>
+          </div>
+        </div>
+
+        <button className="btn-reg" onClick={openModal}>
+          + Registrar Contato
+        </button>
+      </div>
+
+      {/* Right: timeline */}
+      <div className="tl-right">
+        <div className="tl-section-hd">Histórico de contatos</div>
+
+        <div className="tl-entries">
+          {atividades.map((at) => (
+            <div key={at.id} className="tl-entry">
+              <div className={`tl-node ${TIPO_NODE[at.tipo] ?? 'nd-call'}`}>
+                <TipoIcon tipo={at.tipo} />
               </div>
-              <div style={{ fontSize: 13, color: '#fff' }}>{row.value || '—'}</div>
+              <div className="tl-cnt">
+                <div className="tl-cnt-top">
+                  <div className="tl-bdgs">
+                    <span className="bdg bdg-muted">{TIPO_LABEL[at.tipo] ?? at.tipo}</span>
+                    <span className={`bdg ${STATUS_BDG[at.status] ?? 'bdg-muted'}`}>{at.status}</span>
+                  </div>
+                  <span className="tl-when">{formatWhen(at.created_at)}</span>
+                </div>
+                {at.comentario && (
+                  <div className="tl-note">{at.comentario}</div>
+                )}
+                {at.follow_up_data && (
+                  <div className="tl-fu">
+                    <CalIcon />
+                    Follow-up: <strong>{formatFU(at.follow_up_data)}</strong>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
-
-        {/* Stats */}
-        <div style={{
-          background: '#1e1f24',
-          border: '1px solid #353740',
-          borderRadius: 10,
-          padding: '12px',
-          display: 'flex',
-          gap: 12,
-        }}>
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#09bc8a' }}>{atividades.length}</div>
-            <div style={{ fontSize: 10, color: '#81869e', marginTop: 2 }}>Contatos</div>
-          </div>
-          <div style={{ width: 1, background: '#353740' }} />
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#fbbf24' }}>
-              {atividades.filter(a => a.follow_up_data).length}
-            </div>
-            <div style={{ fontSize: 10, color: '#81869e', marginTop: 2 }}>Follow-ups</div>
-          </div>
-        </div>
-
-        <button
-          onClick={openModal}
-          style={{
-            background: '#09bc8a',
-            color: '#0d1e18',
-            border: 'none',
-            borderRadius: 10,
-            padding: '11px',
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: 'Montserrat, sans-serif',
-            boxShadow: '0 0 16px rgba(9,188,138,0.25)',
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          + Registrar contato
-        </button>
       </div>
 
-      {/* Right column — timeline */}
-      <div style={{ flex: 1, padding: '2rem 2rem', overflowY: 'auto' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-            Linha do tempo
-          </h2>
-          <p style={{ fontSize: 12, color: '#81869e' }}>Histórico de interações com {nome}</p>
-        </div>
-
-        {loading && (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#81869e', fontSize: 13 }}>
-            Carregando...
-          </div>
-        )}
-
-        {!loading && atividades.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-            <div style={{ color: '#81869e', fontSize: 13, marginBottom: 16 }}>Nenhum contato registrado ainda.</div>
-            <button
-              onClick={openModal}
-              style={{ background: 'rgba(9,188,138,0.12)', border: '1px solid rgba(9,188,138,0.3)', borderRadius: 8, padding: '8px 16px', color: '#09bc8a', fontSize: 12, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}
-            >
-              Registrar primeiro contato
-            </button>
-          </div>
-        )}
-
-        {/* Timeline entries */}
-        <div style={{ position: 'relative' }}>
-          {/* Vertical line */}
-          {atividades.length > 1 && (
-            <div style={{
-              position: 'absolute',
-              left: 19,
-              top: 20,
-              bottom: 20,
-              width: 2,
-              background: 'linear-gradient(to bottom, #09bc8a 0%, #353740 100%)',
-            }} />
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {atividades.map((at, i) => (
-              <div key={at.id} style={{ display: 'flex', gap: 16, position: 'relative' }}>
-                {/* Dot */}
-                <div style={{
-                  width: 38,
-                  flexShrink: 0,
-                  display: 'flex',
-                  justifyContent: 'center',
-                  paddingTop: 2,
-                }}>
-                  <div style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: '50%',
-                    background: `${TIPO_COLOR[at.tipo] ?? '#353740'}18`,
-                    border: `2px solid ${TIPO_COLOR[at.tipo] ?? '#353740'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 15,
-                    zIndex: 1,
-                    position: 'relative',
-                    flexShrink: 0,
-                  }}>
-                    {TIPO_ICON[at.tipo] ?? '·'}
-                  </div>
-                </div>
-
-                {/* Card */}
-                <div style={{
-                  flex: 1,
-                  background: '#1e1f24',
-                  border: '1px solid #353740',
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: TIPO_COLOR[at.tipo] ?? '#fff' }}>
-                      {at.tipo}
-                    </span>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      padding: '2px 7px',
-                      borderRadius: 20,
-                      background: `${STATUS_COLOR[at.status] ?? '#81869e'}18`,
-                      color: STATUS_COLOR[at.status] ?? '#81869e',
-                    }}>
-                      {at.status}
-                    </span>
-                    <span style={{ marginLeft: 'auto', fontSize: 11, color: '#81869e' }}>
-                      {formatDate(at.created_at)}
-                    </span>
-                  </div>
-
-                  {at.comentario && (
-                    <p style={{ fontSize: 13, color: '#c8cad0', lineHeight: 1.5, margin: 0 }}>
-                      {at.comentario}
-                    </p>
-                  )}
-
-                  {at.follow_up_data && (
-                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#fbbf24' }}>
-                      <span>🕐</span>
-                      <span>Follow-up: {formatDateShort(at.follow_up_data)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Modal — registrar contato */}
-      {modalOpen && (
+      {/* Modal */}
+      {modal && (
         <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 50,
-            background: 'rgba(0,0,0,0.65)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '1rem',
-          }}
-          onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}
+          className="modal-overlay"
+          onClick={e => { if (e.target === e.currentTarget) setModal(false) }}
         >
-          <div style={{
-            width: '100%', maxWidth: 460,
-            background: '#1e1f24',
-            border: '1px solid #353740',
-            borderRadius: 16,
-            padding: '1.5rem',
-            animation: 'modalIn 0.25s ease both',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Registrar contato</h3>
-              <button onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', color: '#81869e', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          <div className="modal-box" style={{ maxWidth: 460 }}>
+            <div className="modal-head">
+              <span className="modal-title">Registrar Contato</span>
+              <button className="modal-x" onClick={() => setModal(false)}>✕</button>
             </div>
 
-            {/* Tipo chips */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>
-                Tipo
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ marginBottom: 14 }}>
+              <span className="fld-lbl">Tipo de contato</span>
+              <div className="tipo-row">
                 {TIPOS.map(t => (
                   <button
                     key={t}
+                    className={`tipo-btn${tipo === t ? ' on' : ''}`}
                     onClick={() => setTipo(t)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      border: `1px solid ${tipo === t ? TIPO_COLOR[t] : '#353740'}`,
-                      background: tipo === t ? `${TIPO_COLOR[t]}18` : 'transparent',
-                      color: tipo === t ? TIPO_COLOR[t] : '#81869e',
-                      cursor: 'pointer',
-                      fontFamily: 'Montserrat, sans-serif',
-                      transition: 'all 0.15s',
-                    }}
                   >
-                    {TIPO_ICON[t]} {t}
+                    {t === 'Ligacao' && '📞 '}
+                    {t === 'Email' && '✉ '}
+                    {t === 'Reuniao' && '👥 '}
+                    {t === 'Proposta' && '📄 '}
+                    {t === 'Declinio' && '✕ '}
+                    {TIPO_LABEL[t]}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Status select */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>
-                Status
-              </label>
-              <CustomSelect
-                value={atStatus}
-                onChange={setAtStatus}
-                options={[...STATUS]}
-                placeholder="Selecionar status..."
-              />
+            <div className="reg-grid">
+              <div>
+                <label className="fld-lbl">Status</label>
+                <CSelectModal
+                  value={atStatus}
+                  onChange={setAtSt}
+                  options={STATUS}
+                  placeholder="Selecionar..."
+                />
+              </div>
+              <div>
+                <label className="fld-lbl">Data e hora</label>
+                <input type="datetime-local" className="fld-inp" style={{ colorScheme: 'dark' }} />
+              </div>
             </div>
 
-            {/* Comentário */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>
-                Comentário <span style={{ fontWeight: 400, textTransform: 'none' }}>(opcional)</span>
-              </label>
+            <div style={{ marginBottom: 12 }}>
+              <label className="fld-lbl">Comentário</label>
               <textarea
-                value={comentario}
-                onChange={e => setComent(e.target.value)}
-                rows={3}
+                className="fld-inp"
                 placeholder="O que aconteceu nesse contato?"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: '#15161b',
-                  border: '1px solid #353740',
-                  borderRadius: 10,
-                  color: '#fff',
-                  fontSize: 13,
-                  outline: 'none',
-                  resize: 'vertical',
-                  fontFamily: 'Montserrat, sans-serif',
-                }}
-                onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')}
-                onBlur={e => (e.currentTarget.style.borderColor = '#353740')}
+                value={nota}
+                onChange={e => setNota(e.target.value)}
               />
             </div>
 
-            {/* Follow-up date */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>
-                Follow-up <span style={{ fontWeight: 400, textTransform: 'none' }}>(opcional)</span>
-              </label>
+            <div>
+              <label className="fld-lbl">Próximo Follow-up</label>
               <input
                 type="date"
-                value={followUp}
-                onChange={e => setFollowUp(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: '#15161b',
-                  border: '1px solid #353740',
-                  borderRadius: 10,
-                  color: followUp ? '#fff' : '#81869e',
-                  fontSize: 13,
-                  outline: 'none',
-                  fontFamily: 'Montserrat, sans-serif',
-                  colorScheme: 'dark',
-                }}
-                onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')}
-                onBlur={e => (e.currentTarget.style.borderColor = '#353740')}
+                className="fld-inp"
+                value={fuDate}
+                onChange={e => setFuDate(e.target.value)}
+                style={{ colorScheme: 'dark' }}
               />
+              <div style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 5 }}>
+                Pré-preenchido com +2 dias úteis
+              </div>
             </div>
 
-            {saveErro && (
-              <div style={{ marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 8, color: '#ef4444', fontSize: 12 }}>
-                {saveErro}
+            {saveErr && (
+              <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(239,68,68,.1)', borderRadius: 8, color: 'var(--red)', fontSize: 12 }}>
+                {saveErr}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="reg-foot">
+              <button className="btn-cancel" onClick={() => setModal(false)}>Cancelar</button>
               <button
-                onClick={() => setModalOpen(false)}
-                style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #353740', borderRadius: 10, color: '#81869e', fontSize: 13, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}
-              >
-                Cancelar
-              </button>
-              <button
+                className="btn-save"
                 onClick={handleSave}
                 disabled={saving}
-                style={{
-                  flex: 2,
-                  padding: '10px',
-                  background: saving ? '#353740' : '#09bc8a',
-                  color: saving ? '#81869e' : '#0d1e18',
-                  border: 'none',
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  fontFamily: 'Montserrat, sans-serif',
-                  transition: 'all 0.15s',
-                }}
+                style={saving ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
               >
                 {saving ? 'Salvando...' : 'Salvar contato'}
               </button>

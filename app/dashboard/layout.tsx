@@ -8,7 +8,7 @@ const NAV = [
     href: '/dashboard',
     label: 'Meus Clientes',
     icon: (
-      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: 15, height: 15 }}>
+      <svg className="nav-ic" viewBox="0 0 16 16" fill="currentColor">
         <path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" />
       </svg>
     ),
@@ -17,7 +17,7 @@ const NAV = [
     href: '/dashboard/painel',
     label: 'Painel',
     icon: (
-      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: 15, height: 15 }}>
+      <svg className="nav-ic" viewBox="0 0 16 16" fill="currentColor">
         <path d="M8 1.5l1.6 4.9H15l-4.2 3 1.6 4.9L8 11.3l-4.4 3.1 1.6-4.9L1 6.4h5.4z" />
       </svg>
     ),
@@ -26,7 +26,7 @@ const NAV = [
     href: '/dashboard/followups',
     label: 'Follow-ups',
     icon: (
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 15, height: 15 }}>
+      <svg className="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="8" cy="8" r="6" />
         <path d="M8 5v4l2 2" />
       </svg>
@@ -36,7 +36,7 @@ const NAV = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
+  const router   = useRouter()
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -47,104 +47,65 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="shell">
       <nav className="sidebar">
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.75rem', padding: '0 4px' }}>
-          <div style={{
-            width: 30, height: 30, borderRadius: 8,
-            background: '#09bc8a',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+        <div className="sb-logo">
+          <div className="sb-icon">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
               <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18" />
             </svg>
           </div>
-          <span style={{ fontWeight: 700, fontSize: 14, color: '#fff', letterSpacing: '-0.2px' }}>
-            Prospecção
-          </span>
+          <span className="sb-name">Prospecção</span>
         </div>
 
-        {/* Nav items */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {NAV.map(item => {
-            const active = item.href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 9,
-                  padding: '9px 10px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 400,
-                  color: active ? '#09bc8a' : '#81869e',
-                  background: active ? 'rgba(9,188,138,0.1)' : 'transparent',
-                  textDecoration: 'none',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => {
-                  if (!active) {
-                    e.currentTarget.style.background = '#24262e'
-                    e.currentTarget.style.color = '#fff'
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!active) {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.color = '#81869e'
-                  }
-                }}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            )
-          })}
-        </div>
+        {/* Nav */}
+        {NAV.map(item => {
+          const active = item.href === '/dashboard'
+            ? pathname === '/dashboard'
+            : pathname.startsWith(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-item${active ? ' on' : ''}`}
+            >
+              {item.icon}
+              {item.label}
+            </Link>
+          )
+        })}
 
         {/* Footer */}
-        <div style={{ borderTop: '1px solid #353740', paddingTop: '1rem', marginTop: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: '#09bc8a',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, color: '#0d1e18',
-              flexShrink: 0,
-            }}>
-              GS
-            </div>
+        <div className="sb-foot">
+          <div className="agent-row">
+            <div className="agent-av">GS</div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Agente</div>
-              <div style={{ fontSize: 11, color: '#81869e' }}>Tendência Energia</div>
+              <div className="agent-name">Guilherme S.</div>
+              <div className="agent-role">Agente comercial</div>
             </div>
           </div>
           <button
             onClick={handleLogout}
             style={{
+              marginTop: 12,
               width: '100%',
               padding: '7px 10px',
               background: 'transparent',
-              border: '1px solid #353740',
+              border: '1px solid var(--border-s)',
               borderRadius: 8,
-              color: '#81869e',
+              color: 'var(--tx2)',
               fontSize: 12,
               cursor: 'pointer',
-              fontFamily: 'Montserrat, sans-serif',
+              fontFamily: 'inherit',
               transition: 'all 0.15s',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = '#24262e'
-              e.currentTarget.style.color = '#ef4444'
+              e.currentTarget.style.background = 'var(--raised)'
+              e.currentTarget.style.color = 'var(--red)'
               e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#81869e'
-              e.currentTarget.style.borderColor = '#353740'
+              e.currentTarget.style.color = 'var(--tx2)'
+              e.currentTarget.style.borderColor = 'var(--border-s)'
             }}
           >
             Sair

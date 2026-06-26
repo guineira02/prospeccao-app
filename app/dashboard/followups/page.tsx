@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CustomSelect } from '@/app/components/CustomSelect'
+import CSelectModal from '@/app/components/CSelectModal'
 
 interface FuRow {
   nome:   string
@@ -9,193 +9,148 @@ interface FuRow {
   ctx:    string
   hint:   string
   delay:  string
-  color:  string
-  dotColor: string
+  dot:    string
+  delayC: string
 }
 
 const OVERDUE: FuRow[] = [
-  { nome: 'Metalúrgica São Paulo Ltda',    uf: 'SP', ctx: 'Não atendeu · proposta enviada',     hint: '📞 Ligar pela manhã',        delay: '5 dias', color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Cerâmica Vale do Rio S.A.',      uf: 'MG', ctx: 'E-mail sem resposta',                hint: '📞 Ligar agora',             delay: '4 dias', color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Distribuidora Nordeste Ltda',    uf: 'BA', ctx: 'Comprometeu retorno · não ligou',    hint: '📞 Lembrete gentil',         delay: '2 dias', color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Agropecuária Planalto',          uf: 'GO', ctx: 'Proposta enviada ontem',             hint: '📞 Confirmar recebimento',   delay: '1 dia',  color: '#ef4444', dotColor: '#ef4444' },
-  { nome: 'Porto Seco Logística',           uf: 'RS', ctx: 'Não atendeu ontem',                  hint: '📞 Tentar outro horário',    delay: '1 dia',  color: '#ef4444', dotColor: '#ef4444' },
+  { nome: 'Metalúrgica São Paulo Ltda',    uf: 'SP', ctx: 'Não atendeu · proposta enviada',     hint: '📞 Ligar pela manhã',       delay: '5 dias', dot: 'fu-dot-red',   delayC: 'fu-delay-red'   },
+  { nome: 'Cerâmica Vale do Rio S.A.',      uf: 'MG', ctx: 'E-mail sem resposta',                hint: '📞 Ligar agora',            delay: '4 dias', dot: 'fu-dot-red',   delayC: 'fu-delay-red'   },
+  { nome: 'Distribuidora Nordeste Ltda',    uf: 'BA', ctx: 'Comprometeu retorno · não ligou',    hint: '📞 Lembrete gentil',        delay: '2 dias', dot: 'fu-dot-red',   delayC: 'fu-delay-red'   },
+  { nome: 'Agropecuária Planalto',          uf: 'GO', ctx: 'Proposta enviada ontem',             hint: '📞 Confirmar recebimento',  delay: '1 dia',  dot: 'fu-dot-red',   delayC: 'fu-delay-red'   },
+  { nome: 'Porto Seco Logística',           uf: 'RS', ctx: 'Não atendeu ontem',                  hint: '📞 Tentar outro horário',   delay: '1 dia',  dot: 'fu-dot-red',   delayC: 'fu-delay-red'   },
 ]
 
 const TODAY: FuRow[] = [
-  { nome: 'Frigorífico Norte S.A.',         uf: 'PA', ctx: 'Reunião agendada · Renova em 3 meses', hint: '👥 Reunião',              delay: '14h00', color: '#09bc8a', dotColor: '#09bc8a' },
-  { nome: 'Cooperativa Agrícola Triângulo', uf: 'MG', ctx: 'Proposta em análise interna',         hint: '📞 Ligar',                delay: '16h00', color: '#09bc8a', dotColor: '#09bc8a' },
+  { nome: 'Frigorífico Norte S.A.',         uf: 'PA', ctx: 'Reunião agendada · Renova em 3 meses', hint: '👥 Reunião',             delay: '14h00',  dot: 'fu-dot-green', delayC: 'fu-delay-green' },
+  { nome: 'Cooperativa Agrícola Triângulo', uf: 'MG', ctx: 'Proposta em análise interna',         hint: '📞 Ligar',               delay: '16h00',  dot: 'fu-dot-green', delayC: 'fu-delay-green' },
 ]
 
 const WEEK: FuRow[] = [
-  { nome: 'Madeireira Pinheiro Ltda',       uf: 'SC', ctx: 'Pediu proposta · enviar antes',       hint: '📄 Enviar proposta',       delay: 'Sex',   color: '#60a5fa', dotColor: '#60a5fa' },
-  { nome: 'Indústria Têxtil Modernidade',   uf: 'SP', ctx: '⚠ Contrato vence em 2 meses · CPFL',  hint: '📞 Ligar com comparativo', delay: 'Sex',   color: '#fbbf24', dotColor: '#fbbf24' },
-  { nome: 'Laticínios Montanha Ltda',        uf: 'MG', ctx: 'Pediu material de migração',         hint: '✉ Enviar material',        delay: 'Seg',   color: '#60a5fa', dotColor: '#60a5fa' },
-  { nome: 'Construtora Ômega S.A.',          uf: 'RJ', ctx: 'Reunião reagendada · diretor ausente', hint: '👥 Reunião',             delay: 'Seg',   color: '#60a5fa', dotColor: '#60a5fa' },
+  { nome: 'Madeireira Pinheiro Ltda',       uf: 'SC', ctx: 'Pediu proposta · enviar antes',       hint: '📄 Enviar proposta',      delay: 'Sex',    dot: 'fu-dot-blue',  delayC: 'fu-delay-blue'  },
+  { nome: 'Indústria Têxtil Modernidade',   uf: 'SP', ctx: '⚠ Contrato vence em 2 meses · CPFL',  hint: '📞 Ligar com comparativo',delay: 'Sex',    dot: 'fu-dot-amber', delayC: 'fu-delay-amber' },
+  { nome: 'Laticínios Montanha Ltda',        uf: 'MG', ctx: 'Pediu material de migração',         hint: '✉ Enviar material',       delay: 'Seg',    dot: 'fu-dot-blue',  delayC: 'fu-delay-blue'  },
+  { nome: 'Construtora Ômega S.A.',          uf: 'RJ', ctx: 'Reunião reagendada · diretor ausente',hint: '👥 Reunião',             delay: 'Seg',    dot: 'fu-dot-blue',  delayC: 'fu-delay-blue'  },
 ]
 
-const GROUPS = [
-  { title: 'Em atraso',    labelColor: '#ef4444', count: `${OVERDUE.length} clientes`, rows: OVERDUE },
-  { title: 'Hoje',         labelColor: '#09bc8a', count: `${TODAY.length} agendados`,  rows: TODAY   },
-  { title: 'Esta semana',  labelColor: '#81869e', count: `${WEEK.length} agendados`,   rows: WEEK    },
+const GRUPOS = [
+  { label: 'Em atraso',   labelClass: 'fu-group-label-red',   count: '5 clientes',  rows: OVERDUE },
+  { label: 'Hoje',        labelClass: 'fu-group-label-green', count: '2 agendados', rows: TODAY   },
+  { label: 'Esta semana', labelClass: 'fu-group-label-muted', count: '4 agendados', rows: WEEK    },
 ]
 
-const TOTAL   = OVERDUE.length + TODAY.length + WEEK.length
-const DONE    = 3
-const PROGPCT = Math.round((DONE / (DONE + TOTAL - TODAY.length)) * 100)
+const STATUS_OPTS = ['Atendeu', 'Não atendeu', 'Agendou retorno', 'Cliente recusou']
+const TIPO_OPTS   = ['📞 Ligação', '✉ E-mail', '👥 Reunião', '📄 Proposta', '✕ Declínio']
 
 function RegModal({ onClose }: { onClose: () => void }) {
-  const TIPOS  = ['Ligacao', 'Email', 'Reuniao', 'Proposta', 'Declinio']
-  const STATUS = ['Atendeu', 'Nao atendeu', 'Agendou retorno', 'Cliente recusou']
-  const [tipo, setTipo]     = useState('')
+  const [tipo,   setTipo]   = useState('')
   const [status, setStatus] = useState('')
-  const [nota, setNota]     = useState('')
+  const [nota,   setNota]   = useState('')
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+      className="modal-overlay"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{ width: '100%', maxWidth: 420, background: '#1e1f24', border: '1px solid #353740', borderRadius: 16, padding: '1.5rem', animation: 'modalIn 0.25s ease both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Registrar contato</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#81869e', fontSize: 18, cursor: 'pointer' }}>✕</button>
+      <div className="modal-box" style={{ maxWidth: 460 }}>
+        <div className="modal-head">
+          <span className="modal-title">Registrar Contato</span>
+          <button className="modal-x" onClick={onClose}>✕</button>
         </div>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>Tipo</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {TIPOS.map(t => (
-              <button key={t} onClick={() => setTipo(t)} style={{
-                padding: '5px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                border: `1px solid ${tipo === t ? '#09bc8a' : '#353740'}`,
-                background: tipo === t ? 'rgba(9,188,138,0.12)' : 'transparent',
-                color: tipo === t ? '#09bc8a' : '#81869e',
-                cursor: 'pointer', fontFamily: 'Montserrat, sans-serif',
-              }}>{t}</button>
+        <div style={{ marginBottom: 14 }}>
+          <span className="fld-lbl">Tipo de contato</span>
+          <div className="tipo-row">
+            {TIPO_OPTS.map(t => (
+              <button
+                key={t}
+                className={`tipo-btn${tipo === t ? ' on' : ''}`}
+                onClick={() => setTipo(t)}
+              >
+                {t}
+              </button>
             ))}
           </div>
         </div>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>Status</label>
-          <CustomSelect
-            value={status}
-            onChange={setStatus}
-            options={[...STATUS]}
-            placeholder="Selecionar..."
+        <div className="reg-grid">
+          <div>
+            <label className="fld-lbl">Status</label>
+            <CSelectModal value={status} onChange={setStatus} options={STATUS_OPTS} placeholder="Selecionar..." />
+          </div>
+          <div>
+            <label className="fld-lbl">Data e hora</label>
+            <input type="datetime-local" className="fld-inp" style={{ colorScheme: 'dark' }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label className="fld-lbl">Comentário</label>
+          <textarea
+            className="fld-inp"
+            placeholder="O que aconteceu nesse contato?"
+            value={nota}
+            onChange={e => setNota(e.target.value)}
           />
         </div>
 
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#81869e', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 7 }}>Observação</label>
-          <textarea rows={3} value={nota} onChange={e => setNota(e.target.value)} placeholder="O que aconteceu?" style={{
-            width: '100%', padding: '9px 12px', background: '#15161b',
-            border: '1px solid #353740', borderRadius: 10, color: '#fff',
-            fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'Montserrat, sans-serif',
-          }} onFocus={e => (e.currentTarget.style.borderColor = '#09bc8a')} onBlur={e => (e.currentTarget.style.borderColor = '#353740')} />
+        <div>
+          <label className="fld-lbl">Próximo Follow-up</label>
+          <input type="date" className="fld-inp" style={{ colorScheme: 'dark' }} />
+          <div style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 5 }}>Pré-preenchido com +2 dias úteis</div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #353740', borderRadius: 10, color: '#81869e', fontSize: 13, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}>
-            Cancelar
-          </button>
-          <button onClick={onClose} style={{ flex: 2, padding: '10px', background: '#09bc8a', color: '#0d1e18', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' }}>
-            Salvar
-          </button>
+        <div className="reg-foot">
+          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-save" onClick={onClose}>Salvar contato</button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function FuRowItem({ row, onReg }: { row: FuRow; onReg: () => void }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #353740' }}>
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: row.dotColor, flexShrink: 0 }} />
-      <div style={{
-        minWidth: 44,
-        fontSize: 11,
-        fontWeight: 700,
-        color: row.color,
-        flexShrink: 0,
-      }}>
-        {row.delay}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>
-          {row.nome}
-        </div>
-        <div style={{ fontSize: 11, color: '#81869e' }}>{row.uf} · {row.ctx}</div>
-      </div>
-      <span style={{ fontSize: 11, color: '#81869e', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-        {row.hint}
-      </span>
-      <button
-        onClick={onReg}
-        style={{
-          padding: '5px 10px',
-          borderRadius: 8,
-          fontSize: 11,
-          fontWeight: 600,
-          border: '1px solid #353740',
-          background: 'transparent',
-          color: '#81869e',
-          cursor: 'pointer',
-          fontFamily: 'Montserrat, sans-serif',
-          flexShrink: 0,
-          transition: 'all 0.15s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#09bc8a'; e.currentTarget.style.color = '#09bc8a' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#353740'; e.currentTarget.style.color = '#81869e' }}
-      >
-        Registrar
-      </button>
     </div>
   )
 }
 
 export default function FollowUpsPage() {
-  const [modalOpen, setModalOpen] = useState(false)
+  const [modal, setModal] = useState(false)
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 860, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Follow-ups</h1>
-          <p style={{ fontSize: 13, color: '#81869e' }}>
-            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' })} · {TOTAL} pendentes
-          </p>
+    <div className="fu-scroll">
+      <div className="fu-body">
+        {/* Header */}
+        <div className="fu-top">
+          <div>
+            <div className="fu-title">Follow-ups</div>
+            <div className="fu-sub">Quinta-feira, 25 jun · 11 pendentes</div>
+          </div>
+          <div className="fu-prog-wrap">
+            <div className="fu-prog-label">Concluídos hoje</div>
+            <div className="fu-prog-bar"><div className="fu-prog-fill" /></div>
+            <div className="fu-prog-count">3 / 8</div>
+          </div>
         </div>
 
-        {/* Progress */}
-        <div style={{ textAlign: 'right', minWidth: 160 }}>
-          <div style={{ fontSize: 11, color: '#81869e', marginBottom: 6 }}>Concluídos hoje</div>
-          <div style={{ height: 6, background: '#1e1f24', borderRadius: 3, marginBottom: 5, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${PROGPCT}%`, background: '#09bc8a', borderRadius: 3, transition: 'width 0.5s ease' }} />
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#09bc8a' }}>{DONE} / {DONE + TOTAL - TODAY.length}</div>
-        </div>
-      </div>
-
-      {/* Groups */}
-      {GROUPS.map(group => (
-        <div key={group.title} style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: group.labelColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {group.title}
-            </span>
-            <span style={{ fontSize: 12, color: '#81869e' }}>{group.count}</span>
-          </div>
-          <div style={{ background: '#1e1f24', border: '1px solid #353740', borderRadius: 12, padding: '0 16px' }}>
-            {group.rows.map((row, i) => (
-              <FuRowItem key={i} row={row} onReg={() => setModalOpen(true)} />
+        {/* Groups */}
+        {GRUPOS.map(grupo => (
+          <div key={grupo.label} className="fu-group">
+            <div className="fu-group-hd">
+              <span className={`fu-group-label ${grupo.labelClass}`}>{grupo.label}</span>
+              <span className="fu-group-count">{grupo.count}</span>
+            </div>
+            {grupo.rows.map((row, i) => (
+              <div key={i} className="fu-row">
+                <div className={`fu-dot ${row.dot}`} />
+                <div className={`fu-delay ${row.delayC}`}>{row.delay}</div>
+                <div className="fu-name">{row.nome}</div>
+                <span className="fu-st">{row.uf}</span>
+                <div className="fu-ctx">{row.ctx}</div>
+                <span className="fu-action-hint">{row.hint}</span>
+                <button className="btn-fu-reg" onClick={() => setModal(true)}>Registrar</button>
+              </div>
             ))}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
-      {modalOpen && <RegModal onClose={() => setModalOpen(false)} />}
+      {modal && <RegModal onClose={() => setModal(false)} />}
     </div>
   )
 }
