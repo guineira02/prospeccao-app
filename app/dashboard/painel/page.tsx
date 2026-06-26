@@ -87,9 +87,15 @@ export default function PainelPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cliente }),
     })
-      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error ?? 'Erro')))
+      .then(async r => {
+        if (r.ok) return r.json()
+        const text = await r.text().catch(() => '')
+        let msg = `HTTP ${r.status}`
+        try { msg = JSON.parse(text).error ?? msg } catch { if (text) msg += `: ${text.slice(0, 120)}` }
+        throw new Error(msg)
+      })
       .then((data: AnaliseResult) => { setLlmData(data); setLlmLoad(false) })
-      .catch((e: string) => { setLlmError(e); setLlmLoad(false) })
+      .catch((e: unknown) => { setLlmError(e instanceof Error ? e.message : String(e)); setLlmLoad(false) })
   }
 
   function copyScript() {
