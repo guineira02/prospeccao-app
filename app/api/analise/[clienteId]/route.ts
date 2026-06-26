@@ -67,6 +67,17 @@ Analise este cliente e sugira a próxima abordagem. Seja específico ao que real
   try {
     const apiKey = await getSecret('ANTHROPIC_API_KEY')
     const MODEL  = (await getSecret('ANTHROPIC_MODEL')) || 'claude-haiku-4-5'
+    const nexiDbg = await getSecret('NEXI_API_KEY')
+    if (new URL(req.url).searchParams.get('debug') === '1') {
+      return NextResponse.json({
+        debug: true,
+        anthropicLen: apiKey.length,
+        anthropicTail: apiKey.slice(-6),
+        nexiLen: nexiDbg.length,
+        model: MODEL,
+        envFallback: !!process.env.ANTHROPIC_API_KEY,
+      })
+    }
     const anthropic = new Anthropic({ apiKey })
     const msg = await anthropic.messages.create({
       model: MODEL,
