@@ -18,6 +18,20 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Test: GET /obj/user with the user's OWN token (not admin key)
+  let userListWithUserToken: unknown = null
+  if (nexiToken) {
+    try {
+      const r = await fetch(`${process.env.NEXI_API_BASE}/obj/user`, {
+        headers: { Authorization: `Bearer ${nexiToken}` },
+      })
+      const data = await r.json()
+      userListWithUserToken = { status: r.status, count: data.response?.count, results: data.response?.results?.map((u: Record<string,unknown>) => ({ _id: u._id, Nome: u['Nome'], email: u['email'] })) }
+    } catch (e) {
+      userListWithUserToken = { error: String(e) }
+    }
+  }
+
   let userLookup: unknown = null
   if (nexiUserId) {
     try {
@@ -30,5 +44,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ nexiToken: nexiToken ? nexiToken.slice(0, 12) + '...' : null, nexiUserId, wfResult, userLookup })
+  return NextResponse.json({ nexiToken: nexiToken ? nexiToken.slice(0, 12) + '...' : null, nexiUserId, wfResult, userListWithUserToken, userLookup })
 }
