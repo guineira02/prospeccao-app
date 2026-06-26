@@ -43,3 +43,6 @@ next-env.d.ts
 # Windows
 desktop.ini
 Thumbs.db
+
+# Local Netlify folder
+.netlify

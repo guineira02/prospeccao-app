@@ -27,9 +27,12 @@ const FILTER_LABELS: Record<string, string> = {
 
 export default function PainelPage() {
   const router  = useRouter()
-  const [aiKey,  setAiKey]  = useState<string | null>(null)
-  const [filter, setFilter] = useState('todos')
-  const [copied, setCopied] = useState(false)
+  const [aiKey,    setAiKey]    = useState<string | null>(null)
+  const [filter,   setFilter]   = useState('todos')
+  const [copied,   setCopied]   = useState(false)
+  const [llmData,  setLlmData]  = useState<AnaliseResult | null>(null)
+  const [llmLoad,  setLlmLoad]  = useState(false)
+  const [llmError, setLlmError] = useState<string | null>(null)
   const { clientes: raw, atividades, loading } = useDashboard()
   const [items, setItems]   = useState<PainelCliente[]>([])
   const [kpis,  setKpis]    = useState<PainelKpis>({ total: 0, atrasado: 0, semana: 0, renovacao: 0 })
@@ -68,12 +71,25 @@ export default function PainelPage() {
 
   const aiCliente   = aiKey ? raw.find(c => c._id === aiKey) : null
   const aiAtvs      = aiKey ? atividades.filter(a => a.cliente_id === aiKey) : []
-  const aiData: AnaliseResult | null = aiCliente ? analisar(aiCliente, aiAtvs) : null
+  const aiDataDet: AnaliseResult | null = aiCliente ? analisar(aiCliente, aiAtvs) : null
+  const aiData      = llmData ?? aiDataDet
   const aiItem      = aiKey ? items.find(i => i._id === aiKey) : null
 
   function openAI(id: string) {
     if (aiKey === id) { setAiKey(null); return }
-    setAiKey(id); setCopied(false)
+    setAiKey(id); setCopied(false); setLlmData(null); setLlmError(null)
+
+    const cliente = raw.find(c => c._id === id)
+    if (!cliente) return
+    setLlmLoad(true)
+    fetch(`/api/analise-ia/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente }),
+    })
+      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error ?? 'Erro')))
+      .then((data: AnaliseResult) => { setLlmData(data); setLlmLoad(false) })
+      .catch((e: string) => { setLlmError(e); setLlmLoad(false) })
   }
 
   function copyScript() {
@@ -173,11 +189,21 @@ export default function PainelPage() {
         <div className="ai-side">
           <div className="ai-side-head">
             <div>
-              <div className="ai-badge">✦ Análise de IA</div>
+              <div className="ai-badge" style={llmData ? { background: 'rgba(9,188,138,.15)', color: '#09bc8a', borderColor: 'rgba(9,188,138,.3)' } : undefined}>
+                {llmLoad
+                  ? <><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: 5 }}>◌</span>Analisando…</>
+                  : llmData ? '✦ IA personalizada' : '✦ Análise de IA'
+                }
+              </div>
               <div className="ai-client-name">{aiItem?.nome ?? '—'}</div>
             </div>
             <button className="ai-side-close" onClick={() => setAiKey(null)}>✕</button>
           </div>
+          {llmError && (
+            <div style={{ padding: '8px 20px', fontSize: 12, color: 'var(--red)', background: 'rgba(239,68,68,.06)', borderBottom: '1px solid rgba(239,68,68,.12)' }}>
+              {llmError}
+            </div>
+          )}
           {aiData && (
             <div className="ai-body">
               <div className="ai-chips">
