@@ -28,13 +28,33 @@ export async function GET(req: NextRequest) {
   }
 
   const tokenData = await tokenRes.json()
-  console.log('Bubble token response:', JSON.stringify(tokenData))
   const access_token = tokenData.access_token ?? tokenData.token ?? tokenData.access_Token
-  const bubble_user_id = tokenData.user_id ?? tokenData.userId ?? null
 
   if (!access_token) {
     console.error('No access_token in response:', tokenData)
     return NextResponse.redirect(new URL('/?error=no_token', req.url))
+  }
+
+  // Resolve Current User via Bubble workflow (OAuth token → user_id)
+  let bubble_user_id: string | null = null
+  try {
+    const meRes = await fetch(`${process.env.NEXI_API_BASE}/wf/OAuth_Prospeccao`, {
+      method:  'POST',
+      headers: {
+        Authorization:  `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
+    if (meRes.ok) {
+      const meData = await meRes.json()
+      bubble_user_id = meData.response?.user_id ?? null
+      console.log('OAuth_Prospeccao resolved user_id:', bubble_user_id)
+    } else {
+      console.error('OAuth_Prospeccao failed:', meRes.status, await meRes.text())
+    }
+  } catch (e) {
+    console.error('OAuth_Prospeccao error:', e)
   }
 
   const res = new NextResponse(
