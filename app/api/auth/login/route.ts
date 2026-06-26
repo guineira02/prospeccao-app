@@ -45,37 +45,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_credentials' }, { status: 401 })
   }
 
+  const resp = data.response as Record<string, unknown> | null
   const access_token =
-    (data.response as Record<string, unknown>)?.access_token as string ??
-    (data.response as Record<string, unknown>)?.token as string ??
+    resp?.access_token as string ??
+    resp?.token as string ??
     data.access_token as string ??
     data.token as string
+
+  const bubble_user_id =
+    resp?.user_id as string ??
+    data.user_id as string ??
+    null
 
   if (!access_token) {
     console.error('No access_token in Bubble response:', data)
     return NextResponse.json({ error: 'no_token' }, { status: 500 })
   }
 
-  // Resolve user_id via OAuth_Prospeccao
-  let bubble_user_id: string | null = null
-  try {
-    const meRes = await fetch(`${process.env.NEXI_API_BASE}/wf/OAuth_Prospeccao`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}),
-    })
-    if (meRes.ok) {
-      const meData = await meRes.json()
-      bubble_user_id = meData.response?.user_id ?? null
-      console.log('OAuth_Prospeccao resolved user_id:', bubble_user_id)
-    } else {
-      console.error('OAuth_Prospeccao failed:', meRes.status, await meRes.text())
-    }
-  } catch (e) {
-    console.error('OAuth_Prospeccao error:', e)
+  if (!bubble_user_id) {
+    console.error('No user_id in Bubble response:', data)
   }
 
   const cookieOpts = {

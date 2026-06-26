@@ -118,11 +118,11 @@ function badgeFromStatus(s: string): { label: string; type: 'green'|'blue'|'ambe
 export default function ClientesPage() {
   const router  = useRouter()
   const { clientes: raw, loading } = useDashboard()
-  const [clientes, setClientes] = useState<Cliente[]>(MOCK)
+  const [clientes, setClientes] = useState<Cliente[]>([])
   const [filter, setFilter]     = useState('Todos')
 
   useEffect(() => {
-    if (loading || !raw.length) return
+    if (loading) return
     setClientes(raw.map(c => ({
       _id:           c._id,
       'Razão Social': c['Razão Social'],
@@ -185,6 +185,18 @@ export default function ClientesPage() {
             )
         )}
       </div>
+
+      {/* Loading / empty */}
+      {loading && (
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--tx3)', fontSize: 14 }}>
+          Carregando clientes...
+        </div>
+      )}
+      {!loading && clientes.length === 0 && (
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--tx3)', fontSize: 14 }}>
+          Nenhum cliente encontrado.
+        </div>
+      )}
 
       {/* Cards */}
       <div className="cl-list">
