@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useDashboard } from './context'
 
 interface Cliente {
   _id:           string
@@ -96,36 +97,47 @@ const MOCK: Cliente[] = [
 
 const FILTERS = ['Todos', 'Atrasados', 'Renovação próxima', null, 'SP', 'MG', 'PA', 'RJ']
 
+function stripeFromStatus(s?: string): Cliente['stripeColor'] {
+  if (!s) return 'muted'
+  const l = s.toLowerCase()
+  if (l.includes('recus') || l.includes('declin') || l.includes('atraso') || l.includes('perdid')) return 'red'
+  if (l.includes('renov') || l.includes('negoc')) return 'amber'
+  if (l.includes('proposta') || l.includes('contato') || l.includes('ativo')) return 'green'
+  if (l.includes('novo') || l.includes('prospec')) return 'blue'
+  return 'muted'
+}
+
+function badgeFromStatus(s: string): { label: string; type: 'green'|'blue'|'amber'|'red'|'muted' } {
+  const stripe = stripeFromStatus(s)
+  const typeMap: Record<string, 'green'|'blue'|'amber'|'red'|'muted'> = {
+    red: 'red', amber: 'amber', green: 'green', blue: 'blue', muted: 'muted',
+  }
+  return { label: s, type: (typeMap[stripe as string] ?? 'muted') as 'green'|'blue'|'amber'|'red'|'muted' }
+}
+
 export default function ClientesPage() {
-  const router = useRouter()
+  const router  = useRouter()
+  const { clientes: raw, loading } = useDashboard()
   const [clientes, setClientes] = useState<Cliente[]>(MOCK)
   const [filter, setFilter]     = useState('Todos')
 
   useEffect(() => {
-    fetch('/api/clientes')
-      .then(r => { if (r.status === 401) { router.push('/'); return null } return r.json() })
-      .then(d => {
-        if (!d) return
-        if (d.clientes && d.clientes.length > 0) {
-          setClientes(d.clientes.map((c: Record<string,unknown>) => ({
-            _id: c._id as string,
-            'Razão Social': c['Razão Social'] as string,
-            CNPJ: c.CNPJ as string,
-            UF: c.UF as string,
-            consumo: c['Consumo Estimado'] ? `${c['Consumo Estimado']} kWh/mês` : undefined,
-            concorrente: c.Concorrente as string | undefined,
-            status: c.Status as string | undefined,
-            stripeColor: 'muted',
-            badges: c.Status ? [{ label: c.Status as string, type: 'muted' as const }] : [],
-          })))
-        }
-      })
-      .catch(() => {})
-  }, [router])
+    if (loading || !raw.length) return
+    setClientes(raw.map(c => ({
+      _id:           c._id,
+      'Razão Social': c['Razão Social'],
+      CNPJ:          c.CNPJ,
+      UF:            c.UF,
+      consumo:       c['Consumo Estimado'] ? `${c['Consumo Estimado']} kWh/mês` : undefined,
+      concorrente:   (c as unknown as Record<string,unknown>).Concorrente as string | undefined,
+      status:        c.Status,
+      stripeColor:   stripeFromStatus(c.Status),
+      badges:        c.Status ? [badgeFromStatus(c.Status)] : [],
+    })))
+  }, [raw, loading])
 
   function goTimeline(c: Cliente) {
-    const p = new URLSearchParams({ nome: c['Razão Social'], cnpj: c.CNPJ, uf: c.UF, status: c.status ?? '' })
-    router.push(`/dashboard/${c._id}?${p}`)
+    router.push(`/dashboard/${c._id}`)
   }
 
   const visible = clientes.filter(c => {

@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseForUser } from '@/lib/supabase-server'
-import { nexiGetClientesProspeccao } from '@/lib/nexi'
+import { nexiGetCurrentUser, nexiGetClientesProspeccao } from '@/lib/nexi'
 
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('sb-access-token')?.value
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const nexiToken = req.cookies.get('nexi_token')?.value
+  if (!nexiToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const supabase = getSupabaseForUser(token)
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await nexiGetCurrentUser(nexiToken)
+  if (!user?._id) return NextResponse.json({ error: 'User not found' }, { status: 401 })
 
-  const nexiId = user.user_metadata?.nexi_id as string | undefined
-  if (!nexiId) return NextResponse.json({ error: 'Nexi ID não encontrado na sessão' }, { status: 400 })
-
-  const nexiToken = req.cookies.get('nexi-access-token')?.value
-  const clientes = await nexiGetClientesProspeccao(nexiId, nexiToken)
-
+  const clientes = await nexiGetClientesProspeccao(user._id, nexiToken)
   return NextResponse.json({ clientes })
 }

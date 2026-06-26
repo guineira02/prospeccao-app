@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseForUser } from '@/lib/supabase-server'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ clienteId: string }> }
 ) {
-  const token = req.cookies.get('sb-access-token')?.value
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = getSupabaseForUser(token)
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const nexiToken = req.cookies.get('nexi_token')?.value
+  if (!nexiToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { clienteId } = await params
+  const supabase = getSupabaseAdmin()
 
   const { data, error } = await supabase
     .from('pt_atividades')

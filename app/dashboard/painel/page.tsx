@@ -1,121 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useDashboard } from '../context'
+import { analisar, AnaliseResult } from '@/lib/analise'
 
-interface AIData {
-  name:         string
-  contextTitle: string
-  chips:        string[]
-  contexto:     string
-  tags:         [string, string][]
-  script:       string
+interface PainelCliente {
+  _id: string; n: number; nome: string; uf: string; cnpj: string
+  meta: string; dias: string; tags: string[]
 }
 
-const AI_DATA: Record<string, AIData> = {
-  metalurgica: {
-    name: 'Metalúrgica São Paulo Ltda',
-    contextTitle: 'Por que o silêncio?',
-    chips: ['📄 Proposta enviada há 8 dias','👥 Diretor financeiro envolvido','⚡ Contrato vence em 5 meses','🕐 Não atendeu às 14h32'],
-    contexto: 'Rômulo pediu uma semana para análise interna — passaram 8 dias. O não-atendimento às 14h32 sugere horário inadequado, não evasão. Com o diretor financeiro envolvido, a decisão é colegiada e naturalmente mais lenta. O interesse demonstrado na reunião de junho era genuíno.',
-    tags: [['g','Tom consultivo'],['i','Ligar pela manhã'],['r','Não cobrar resposta'],['a','Reforçar urgência do contrato']],
-    script: 'Rômulo, tudo bem? Queria saber se surgiu alguma dúvida sobre a simulação que mandei. Às vezes tem detalhe que fica sem resposta na proposta — posso ajustar se precisar. O diretor teve chance de dar uma olhada?',
-  },
-  ceramica: {
-    name: 'Cerâmica Vale do Rio S.A.',
-    contextTitle: 'Por que o silêncio?',
-    chips: ['📧 E-mail sem resposta há 4 dias','🤝 Nenhuma ligação realizada ainda','❓ Relação não estabelecida'],
-    contexto: 'E-mail tem taxa de abertura incerta — pode estar em spam ou simplesmente não foi priorizado. Nunca houve ligação: o relacionamento ainda não foi estabelecido de voz. O cliente não tem contexto suficiente para responder com interesse real.',
-    tags: [['g','Ligar, não reenviar e-mail'],['i','Apresentação rápida (3 min)'],['a','Confirmar recebimento']],
-    script: 'Olá, tudo bem? Sou da Tendência Energia. Mandei um e-mail há alguns dias sobre uma análise de economia no consumo de energia da cerâmica. Você chegou a receber? Consigo apresentar em 3 minutos agora mesmo se quiser.',
-  },
-  distribuidora: {
-    name: 'Distribuidora Nordeste Ltda',
-    contextTitle: 'Por que o silêncio?',
-    chips: ['🤝 Se comprometeu a ligar','⏰ 2 dias além do combinado','📍 BA — possível fuso horário'],
-    contexto: 'Cliente se comprometeu mas não ligou — comportamento comum quando a decisão ainda precisa de mais tempo ou outra prioridade surgiu. Não é sinal de desinteresse. O compromisso verbal é um ativo — use com leveza.',
-    tags: [['i','Lembrete gentil'],['g','Reforçar que não é cobrança'],['a','Abrir espaço para reagendar']],
-    script: 'Oi, tudo bem? Você tinha falado que me ligaria essa semana sobre a migração de energia. Queria só confirmar se ainda está na pauta ou se surgiu alguma coisa. Fico à disposição para reagendar no melhor momento pra você.',
-  },
-  agropecuaria: {
-    name: 'Agropecuária Planalto',
-    contextTitle: 'Por que o silêncio?',
-    chips: ['📄 Proposta enviada ontem','✅ Reunião bem-sucedida','🔥 Janela de encantamento aberta'],
-    contexto: 'Apenas 1 dia — muito cedo para preocupação. A proposta é nova e o cliente ainda está processando. Esta é a janela ideal de follow-up: o conteúdo está fresco, o interesse da reunião ainda está ativo.',
-    tags: [['g','Confirmar recebimento agora'],['i','Tom de suporte, não pressão'],['a','Aproveitar momentum da reunião']],
-    script: 'Oi! Enviei a proposta ontem à tarde. Queria confirmar que chegou certinha e se ficou fácil de ler. Qualquer dúvida sobre a simulação ou os números, me avisa que ajusto na hora.',
-  },
-  porto: {
-    name: 'Porto Seco Logística',
-    contextTitle: 'Por que o silêncio?',
-    chips: ['📞 Primeiro contato tentado','❌ Não atendeu ontem','🆕 Relação ainda inexistente'],
-    contexto: 'Simples: não estava disponível. Primeiro contato com 1 dia de atraso não é sinal de nada. Tente um horário diferente — logísticas geralmente têm manhã mais intensa. Fim de tarde pode funcionar melhor.',
-    tags: [['i','Tentar horário diferente'],['g','Deixar mensagem de voz curta'],['a','Gancho: redução de custo operacional']],
-    script: 'Tudo bem? Tentei te ligar ontem. Sou da Tendência Energia — trabalho com empresas de logística para reduzir custo com energia elétrica. Quando seria um bom momento pra trocar uma ideia de 5 minutos?',
-  },
-  frigorifico: {
-    name: 'Frigorífico Norte S.A.',
-    contextTitle: 'Momento atual',
-    chips: ['✅ Reunião realizada','📅 Retorno agendado','⚡ Contrato vence em 3 meses','🔥 Prioridade máxima — semana + renovação'],
-    contexto: 'Reunião bem recebida e o cliente agendou retorno espontaneamente — sinal claro de interesse real. Com o contrato vencendo em 3 meses, a janela de decisão está aberta agora. Concorrente atual provavelmente vai entrar em contato no mesmo período.',
-    tags: [['g','Tom parceiro, não vendedor'],['a','Antecipar renovação como vantagem'],['i','Levar simulação comparativa'],['r','Criar senso de oportunidade, não urgência artificial']],
-    script: 'Oi! Fiz a simulação com base nos dados que você compartilhou na reunião. Com o contrato vencendo em outubro, antecipar agora pode travar uma tarifa mais favorável antes da alta sazonal. Quando você estaria disponível pra gente fechar os números?',
-  },
-  cooperativa: {
-    name: 'Cooperativa Agrícola Triângulo',
-    contextTitle: 'Momento atual',
-    chips: ['📄 Proposta enviada','⏳ Aguardando resposta','✅ Ligação atendida na semana'],
-    contexto: 'Cliente atendeu e demonstrou abertura. Proposta está em análise — estágio de momentum positivo. Agora é o momento de facilitar a decisão, não de pressionar. Cooperativas têm decisão colegiada: pode estar circulando internamente.',
-    tags: [['g','Facilitar decisão, não pressionar'],['i','Perguntar se chegou para todos os decisores'],['a','Oferecer reunião de apresentação interna']],
-    script: 'Oi, tudo bem? A proposta chegou bem? Às vezes em cooperativa ela precisa passar por mais de uma pessoa antes de avançar — se quiser, posso fazer uma apresentação rápida para o grupo, facilita bastante a discussão interna.',
-  },
-  madeireira: {
-    name: 'Madeireira Pinheiro Ltda',
-    contextTitle: 'Momento atual',
-    chips: ['📞 Ligação atendida','✅ Pediu proposta','🔥 Interesse confirmado — semana atual'],
-    contexto: 'Cliente atendeu, ouviu e pediu proposta — interesse confirmado e ativo. Este é o estágio mais quente: o cliente está no modo de comparação. A proposta precisa chegar bem estruturada e ser acompanhada imediatamente.',
-    tags: [['a','Enviar proposta hoje'],['g','Confirmar recebimento em 24h'],['i','Destacar economia mensal, não técnica'],['r','Simplicidade: 1 página, 1 número claro']],
-    script: 'Oi! A proposta foi enviada agora há pouco. Destaquei a economia mensal estimada no topo, bem direto. Quando você tiver um momento pra dar uma olhada, me fala o que achou — se precisar ajustar algo, resolvo rápido.',
-  },
-  textil: {
-    name: 'Indústria Têxtil Modernidade',
-    contextTitle: 'Janela de renovação',
-    chips: ['🏁 Contrato vence em 2 meses','⚠️ Concorrente atual: CPFL','📵 Sem contato recente','🎯 Oportunidade de virada'],
-    contexto: 'Contrato vencendo em 2 meses com concorrente ativo (CPFL) — janela crítica de virada. A ausência de contato recente pode ser lida como indiferença pelo cliente. CPFL provavelmente já está em processo de renovação.',
-    tags: [['a','Entrar com comparativo CPFL × Tendência'],['g','Tom consultivo: "vamos ver se faz sentido"'],['r','Não atacar o concorrente — comparar dados'],['i','Urgência real: 2 meses, não urgência artificial']],
-    script: 'Olá, tudo bem? Vi que o contrato de energia de vocês está perto do vencimento. Fiz uma simulação rápida comparando com o que normalmente a CPFL pratica para o perfil da indústria têxtil — saiu uma diferença relevante. Vale 15 minutos pra você dar uma olhada antes de renovar?',
-  },
+interface PainelKpis { total: number; atrasado: number; semana: number; renovacao: number }
+
+function daysOverdue(iso: string) {
+  const diff = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000))
+  return diff === 1 ? '1 dia' : `${diff} dias`
 }
 
-interface UrgItem {
-  key:  string
-  n:    number
-  nome: string
-  uf:   string
-  meta: string
-  dias: string
-  dc:   boolean
-  tags: string[]
-  tagEls?: React.ReactNode
-}
-
-const URG_ITEMS: UrgItem[] = [
-  { key: 'metalurgica',  n: 1, nome: 'Metalúrgica São Paulo Ltda',    uf: 'SP', meta: 'Proposta enviada · Último contato não atendeu',   dias: '5 dias atraso',  dc: true,  tags: ['atrasado'] },
-  { key: 'ceramica',     n: 2, nome: 'Cerâmica Vale do Rio S.A.',      uf: 'MG', meta: 'E-mail enviado · Sem resposta',                  dias: '4 dias atraso',  dc: true,  tags: ['atrasado'] },
-  { key: 'distribuidora',n: 3, nome: 'Distribuidora Nordeste Ltda',    uf: 'BA', meta: 'Comprometeu retorno · Não retornou',             dias: '2 dias atraso',  dc: false, tags: ['atrasado'] },
-  { key: 'agropecuaria', n: 4, nome: 'Agropecuária Planalto',          uf: 'GO', meta: 'Reunião realizada · Proposta enviada ontem',     dias: '1 dia atraso',   dc: false, tags: ['atrasado'] },
-  { key: 'porto',        n: 5, nome: 'Porto Seco Logística',           uf: 'RS', meta: 'Primeiro contato · Não atendeu',                 dias: '1 dia atraso',   dc: false, tags: ['atrasado'] },
-  { key: 'frigorifico',  n: 6, nome: 'Frigorífico Norte S.A.',         uf: 'PA', meta: 'Reunião realizada · Agendou retorno',            dias: '',               dc: false, tags: ['semana', 'renovacao'] },
-  { key: 'cooperativa',  n: 7, nome: 'Cooperativa Agrícola Triângulo', uf: 'MG', meta: 'Proposta enviada · Aguardando resposta',         dias: '',               dc: false, tags: ['semana'] },
-  { key: 'madeireira',   n: 8, nome: 'Madeireira Pinheiro Ltda',       uf: 'SC', meta: 'Ligação · Atendeu, pediu proposta',              dias: '',               dc: false, tags: ['semana'] },
-  { key: 'textil',       n: 9, nome: 'Indústria Têxtil Modernidade',   uf: 'SP', meta: 'Sem contato recente · Concorrente: CPFL',        dias: '',               dc: false, tags: ['renovacao'] },
-]
-
-const FILTER_OPTS = [
-  { key: 'todos',     label: 'Todos',                    count: 9 },
-  { key: 'atrasado',  label: 'Follow-up atrasado',        count: 5 },
-  { key: 'semana',    label: 'Contatados essa semana',    count: 4 },
-  { key: 'renovacao', label: 'Renovações próximas',       count: 3 },
-]
 
 const FILTER_LABELS: Record<string, string> = {
   todos: 'Todos os clientes',
@@ -125,110 +26,143 @@ const FILTER_LABELS: Record<string, string> = {
 }
 
 export default function PainelPage() {
+  const router  = useRouter()
   const [aiKey,  setAiKey]  = useState<string | null>(null)
   const [filter, setFilter] = useState('todos')
   const [copied, setCopied] = useState(false)
+  const { clientes: raw, atividades, loading } = useDashboard()
+  const [items, setItems]   = useState<PainelCliente[]>([])
+  const [kpis,  setKpis]    = useState<PainelKpis>({ total: 0, atrasado: 0, semana: 0, renovacao: 0 })
 
-  const aiData = aiKey ? AI_DATA[aiKey] : null
+  useEffect(() => {
+    if (loading) return
+    const todayStr   = new Date().toISOString().slice(0, 10)
+    const weekAgoStr = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
 
-  function openAI(key: string) {
-    if (aiKey === key) { setAiKey(null); return }
-    setAiKey(key)
-    setCopied(false)
+    const mapped: PainelCliente[] = raw.map((c, i) => {
+      const clientAts = atividades.filter(a => a.cliente_id === c._id)
+      const overdueFUs = clientAts.filter(a => a.follow_up_data && a.follow_up_data.slice(0, 10) < todayStr)
+      const latestOverdue = overdueFUs.sort((a, b) =>
+        (b.follow_up_data ?? '').localeCompare(a.follow_up_data ?? ''))[0]
+      const contactedThisWeek = clientAts.some(a => a.created_at.slice(0, 10) >= weekAgoStr)
+      const tags: string[] = []
+      if (overdueFUs.length)     tags.push('atrasado')
+      if (contactedThisWeek)     tags.push('semana')
+      if (c.Status?.toLowerCase().includes('renov')) tags.push('renovacao')
+      const lastAt = clientAts[0]
+      const meta = lastAt
+        ? `${lastAt.tipo} · ${lastAt.status}`
+        : (c.Status ?? 'Sem atividades')
+      const dias = latestOverdue?.follow_up_data ? daysOverdue(latestOverdue.follow_up_data) : ''
+      return { _id: c._id, n: i + 1, nome: c['Razão Social'], uf: c.UF ?? '', cnpj: c.CNPJ ?? '', meta, dias, tags }
+    })
+
+    setItems(mapped)
+    setKpis({
+      total:     mapped.length,
+      atrasado:  mapped.filter(i => i.tags.includes('atrasado')).length,
+      semana:    mapped.filter(i => i.tags.includes('semana')).length,
+      renovacao: mapped.filter(i => i.tags.includes('renovacao')).length,
+    })
+  }, [raw, atividades, loading])
+
+  const aiCliente   = aiKey ? raw.find(c => c._id === aiKey) : null
+  const aiAtvs      = aiKey ? atividades.filter(a => a.cliente_id === aiKey) : []
+  const aiData: AnaliseResult | null = aiCliente ? analisar(aiCliente, aiAtvs) : null
+  const aiItem      = aiKey ? items.find(i => i._id === aiKey) : null
+
+  function openAI(id: string) {
+    if (aiKey === id) { setAiKey(null); return }
+    setAiKey(id); setCopied(false)
   }
 
   function copyScript() {
     if (!aiData) return
     navigator.clipboard.writeText(aiData.script).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
+      setCopied(true); setTimeout(() => setCopied(false), 1800)
     })
   }
 
-  const visible = URG_ITEMS.filter(item =>
-    filter === 'todos' || item.tags.includes(filter)
-  )
+  function goCliente(item: PainelCliente) {
+    router.push(`/dashboard/${item._id}`)
+  }
+
+  const visible = items.filter(item => filter === 'todos' || item.tags.includes(filter))
+  const filterOpts = [
+    { key: 'todos',     label: 'Todos',                 count: items.length },
+    { key: 'atrasado',  label: 'Follow-up atrasado',    count: kpis.atrasado },
+    { key: 'semana',    label: 'Contatados essa semana', count: kpis.semana },
+    { key: 'renovacao', label: 'Renovações próximas',   count: kpis.renovacao },
+  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Scrollable content + AI panel side by side */}
       <div className={`painel-main${aiKey ? ' ai-open' : ''}`} style={{ flex: 1, overflow: 'hidden' }}>
 
-        {/* Scrollable painel content */}
         <div className="painel-scroll">
           <div className="painel-body">
             <div className="painel-h1">Painel</div>
-            <div className="painel-sub">Sua carteira hoje · 25 jun 2026</div>
+            <div className="painel-sub">Sua carteira hoje · {new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
-            {/* KPI grid */}
             <div className="kpi-grid">
               <div className="kpi kpi-g">
                 <div className="kpi-lbl">Total de Clientes</div>
-                <div className="kpi-n">24</div>
+                <div className="kpi-n">{loading ? '…' : kpis.total}</div>
                 <div className="kpi-d">base sincronizada</div>
               </div>
               <div className="kpi kpi-r">
                 <div className="kpi-lbl">Follow-ups Atrasados</div>
-                <div className="kpi-n">5</div>
-                <div className="kpi-d">↑ 2 desde ontem</div>
+                <div className="kpi-n">{loading ? '…' : kpis.atrasado}</div>
+                <div className="kpi-d">requerem atenção</div>
               </div>
               <div className="kpi kpi-b">
                 <div className="kpi-lbl">Contatados essa Semana</div>
-                <div className="kpi-n">8</div>
+                <div className="kpi-n">{loading ? '…' : kpis.semana}</div>
                 <div className="kpi-d">meta: 10 por semana</div>
               </div>
               <div className="kpi kpi-a">
                 <div className="kpi-lbl">Renovações Próximas</div>
-                <div className="kpi-n">3</div>
+                <div className="kpi-n">{loading ? '…' : kpis.renovacao}</div>
                 <div className="kpi-d">contratos em 6 meses</div>
               </div>
             </div>
 
-            {/* Filters */}
             <div className="painel-filters">
-              {FILTER_OPTS.map(f => (
-                <button
-                  key={f.key}
-                  className={`pf-btn${filter === f.key ? ' on' : ''}`}
-                  onClick={() => setFilter(f.key)}
-                >
+              {filterOpts.map(f => (
+                <button key={f.key} className={`pf-btn${filter === f.key ? ' on' : ''}`} onClick={() => setFilter(f.key)}>
                   {f.label} <span className="pf-count">{f.count}</span>
                 </button>
               ))}
             </div>
 
-            {/* Urgency list */}
             <div className="urg-hd">
-              {FILTER_LABELS[filter]} <span className="urg-hd-count">{visible.length}</span>
+              {FILTER_LABELS[filter] ?? 'Clientes'} <span className="urg-hd-count">{visible.length}</span>
             </div>
+
+            {!loading && items.length === 0 && (
+              <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
+                Nenhum cliente carregado ainda.
+              </div>
+            )}
+
             <div className="urg-list">
               {visible.map(item => (
-                <div key={item.key} style={{ marginBottom: 8 }}>
+                <div key={item._id} style={{ marginBottom: 8 }}>
                   <div className="urg-row">
                     <span className="urg-n">{item.n}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="urg-co">{item.nome}</div>
-                      <div className="urg-meta">{item.uf} · {item.meta}</div>
+                      <div className="urg-meta">{item.uf}{item.uf && item.meta ? ' · ' : ''}{item.meta}</div>
                     </div>
-                    {item.tags.includes('renovacao') && !item.tags.includes('semana') && (
-                      <span className="tag-renovacao">Renova em {item.key === 'textil' ? '2' : '3'} meses</span>
-                    )}
-                    {item.tags.includes('renovacao') && item.tags.includes('semana') && (
-                      <><span className="tag-renovacao">Renova em 3 meses</span><span className="tag-semana">Esta semana</span></>
-                    )}
-                    {item.tags.includes('semana') && !item.tags.includes('renovacao') && (
-                      <span className="tag-semana">Esta semana</span>
-                    )}
+                    {item.tags.includes('renovacao') && <span className="tag-renovacao">Renovação próxima</span>}
+                    {item.tags.includes('semana')    && <span className="tag-semana">Esta semana</span>}
                     {item.dias && (
-                      <span className={`urg-days ${item.dc ? 'dc' : 'dw'}`}>{item.dias}</span>
+                      <span className={`urg-days ${item.tags.includes('atrasado') ? 'dc' : 'dw'}`}>{item.dias}</span>
                     )}
-                    <button
-                      className={`btn-ai${aiKey === item.key ? ' on' : ''}`}
-                      onClick={() => openAI(item.key)}
-                    >
+                    <button className={`btn-ai${aiKey === item._id ? ' on' : ''}`} onClick={() => openAI(item._id)}>
                       ✦ Ver análise
                     </button>
-                    <button className="btn-ver">Ver →</button>
+                    <button className="btn-ver" onClick={() => goCliente(item)}>Ver →</button>
                   </div>
                 </div>
               ))}
@@ -236,27 +170,23 @@ export default function PainelPage() {
           </div>
         </div>
 
-        {/* AI Side Panel */}
         <div className="ai-side">
           <div className="ai-side-head">
             <div>
               <div className="ai-badge">✦ Análise de IA</div>
-              <div className="ai-client-name">{aiData?.name ?? '—'}</div>
+              <div className="ai-client-name">{aiItem?.nome ?? '—'}</div>
             </div>
             <button className="ai-side-close" onClick={() => setAiKey(null)}>✕</button>
           </div>
           {aiData && (
             <div className="ai-body">
-              {/* Chips */}
               <div className="ai-chips">
                 {aiData.chips.map((c, i) => <span key={i} className="ai-chip">{c}</span>)}
               </div>
-              {/* Context */}
               <div className="ai-block">
                 <div className="ai-block-title">{aiData.contextTitle}</div>
                 <div className="ai-text">{aiData.contexto}</div>
               </div>
-              {/* Tags */}
               <div className="ai-block">
                 <div className="ai-block-title">Como abordar</div>
                 <div className="ai-tags">
@@ -265,7 +195,7 @@ export default function PainelPage() {
                   ))}
                 </div>
               </div>
-              {/* Script */}
+              {aiData.script && (
               <div className="ai-block">
                 <div className="ai-block-title">Script sugerido</div>
                 <div className="ai-script-wrap">
@@ -283,9 +213,11 @@ export default function PainelPage() {
                   </button>
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
+
       </div>
     </div>
   )

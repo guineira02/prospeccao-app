@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseForUser } from '@/lib/supabase-server'
 
 const CNPJA_PROXY = 'https://primary-production-84466.up.railway.app/webhook/cnpja-proxy'
 
@@ -7,12 +6,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ cnpj: string }> }
 ) {
-  const token = req.cookies.get('sb-access-token')?.value
+  const token = req.cookies.get('nexi_token')?.value
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = getSupabaseForUser(token)
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { cnpj } = await params
   const cnpjLimpo = cnpj.replace(/\D/g, '')

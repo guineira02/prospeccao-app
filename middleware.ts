@@ -9,7 +9,7 @@ export function middleware(req: NextRequest) {
 
   if (isPublic) return NextResponse.next()
 
-  const token = req.cookies.get('sb-access-token')?.value
+  const token = req.cookies.get('nexi_token')?.value ?? req.cookies.get('sb-access-token')?.value
   if (!token) {
     return NextResponse.redirect(new URL('/', req.url))
   }

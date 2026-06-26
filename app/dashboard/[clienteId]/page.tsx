@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import CSelectModal from '@/app/components/CSelectModal'
+import { useDashboard } from '../context'
 
 interface Atividade {
   id:             string
@@ -80,28 +81,47 @@ function formatFU(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
-/* Mock timeline matching design-preview */
-const MOCK_AT: Atividade[] = [
-  { id:'m1', tipo:'Ligacao',  status:'Não atendeu',     comentario:'Liguei novamente para o Rômulo. Não atendeu. Número correto, mas fora do horário de trabalho.',                                                                          follow_up_data:'2026-06-25', created_at:'2026-06-20T14:32:00Z' },
-  { id:'m2', tipo:'Email',    status:'Atendeu',          comentario:'Enviei proposta de migração com simulação de 12 meses. Rômulo confirmou recebimento e pediu uma semana para análise interna com o financeiro.',                          follow_up_data:'2026-06-24', created_at:'2026-06-17T09:15:00Z' },
-  { id:'m3', tipo:'Reuniao',  status:'Agendou retorno',  comentario:'Video com Rômulo e o diretor financeiro. Apresentei o modelo de economia no mercado livre. Ficaram interessados — pediram proposta formal com simulação de 12 meses.', follow_up_data:'2026-06-17', created_at:'2026-06-10T16:00:00Z' },
-  { id:'m4', tipo:'Ligacao',  status:'Atendeu',          comentario:'Falei com Rômulo, responsável financeiro. Consumo confirmado acima de 500 kWh. Aberto para conversa — agendamos reunião para o dia 10.',                              follow_up_data:'2026-06-10', created_at:'2026-06-05T11:20:00Z' },
-  { id:'m5', tipo:'Ligacao',  status:'Não atendeu',      comentario:'Primeiro contato. Não atendeu. Deixei recado.',                                                                                                                          follow_up_data:'2026-06-05', created_at:'2026-06-03T09:00:00Z' },
-]
+function maskPhone(v: string) {
+  const d = v.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 2)  return d.length ? `(${d}` : ''
+  if (d.length <= 6)  return `(${d.slice(0,2)}) ${d.slice(2)}`
+  if (d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`
+}
+
+
+interface Meta { contato_nome: string; contato_telefone: string; contato_email: string }
+interface CnpjData {
+  razao_social: string; atividade: string; situacao: string
+  municipio: string; uf: string; email: string; telefone: string; rep_legal: string
+}
 
 export default function TimelinePage() {
-  const params       = useParams()
-  const searchParams = useSearchParams()
-  const router       = useRouter()
-  const clienteId    = params.clienteId as string
+  const params    = useParams()
+  const router    = useRouter()
+  const clienteId = params.clienteId as string
+  const { clientes } = useDashboard()
 
-  const nome    = searchParams.get('nome') ?? 'Cliente'
-  const cnpj    = searchParams.get('cnpj') ?? ''
-  const uf      = searchParams.get('uf')   ?? ''
-  const status  = searchParams.get('status') ?? ''
+  const ctx    = clientes.find(c => c._id === clienteId)
+  const nome   = ctx?.['Razão Social'] ?? 'Cliente'
+  const cnpj   = ctx?.CNPJ ?? ''
+  const uf     = ctx?.UF ?? ''
+  const status = ctx?.Status ?? ''
 
-  const [atividades, setAtividades] = useState<Atividade[]>(MOCK_AT)
+  const [atividades, setAtividades] = useState<Atividade[]>([])
+  const [loading,    setLoading]    = useState(true)
   const [modal,      setModal]      = useState(false)
+
+  // contact meta
+  const [meta,       setMeta]       = useState<Meta>({ contato_nome: '', contato_telefone: '', contato_email: '' })
+  const [editField,  setEditField]  = useState<keyof Meta | null>(null)
+  const [editVal,    setEditVal]    = useState('')
+  const [metaSaving, setMetaSaving] = useState(false)
+
+  // cnpj enrichment
+  const [enriching,  setEnriching]  = useState(false)
+  const [cnpjData,   setCnpjData]   = useState<CnpjData | null>(null)
+  const [cnpjErr,    setCnpjErr]    = useState('')
 
   // modal state
   const [tipo,     setTipo]   = useState('')
@@ -112,12 +132,65 @@ export default function TimelinePage() {
   const [saveErr,  setSaveErr]= useState('')
 
   useEffect(() => {
-    if (!clienteId.startsWith('mock-')) {
-      fetch(`/api/atividades/${clienteId}`)
-        .then(r => { if (r.status === 401) { router.push('/'); return null } return r.json() })
-        .then(d => { if (d?.atividades?.length) setAtividades(d.atividades) })
+    setLoading(true)
+    fetch(`/api/atividades/${clienteId}`)
+      .then(r => { if (!r.ok) return null; return r.json() })
+      .then(d => { setAtividades(d?.atividades ?? []) })
+      .finally(() => setLoading(false))
+  }, [clienteId])
+
+  useEffect(() => {
+    fetch(`/api/meta/${clienteId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.meta) setMeta({ contato_nome: d.meta.contato_nome ?? '', contato_telefone: d.meta.contato_telefone ?? '', contato_email: d.meta.contato_email ?? '' }) })
+  }, [clienteId])
+
+  function startEdit(field: keyof Meta) {
+    setEditField(field); setEditVal(meta[field])
+  }
+
+  async function commitEdit() {
+    if (!editField) return
+    const updated = { ...meta, [editField]: editVal }
+    setMeta(updated); setEditField(null)
+    setMetaSaving(true)
+    await fetch(`/api/meta/${clienteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    })
+    setMetaSaving(false)
+  }
+
+  async function enrichCnpj() {
+    const cnpjLimpo = cnpj.replace(/\D/g, '')
+    if (!cnpjLimpo) return
+    setEnriching(true); setCnpjErr(''); setCnpjData(null)
+    const res = await fetch(`/api/cnpj/${cnpjLimpo}`)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setCnpjErr(d.error ?? 'CNPJ não encontrado')
+    } else {
+      const d = await res.json()
+      setCnpjData(d)
     }
-  }, [clienteId, router])
+    setEnriching(false)
+  }
+
+  function importCnpjContato() {
+    if (!cnpjData) return
+    const updated = {
+      ...meta,
+      contato_telefone: cnpjData.telefone || meta.contato_telefone,
+      contato_email:    cnpjData.email    || meta.contato_email,
+    }
+    setMeta(updated)
+    fetch(`/api/meta/${clienteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    })
+  }
 
   function openModal() {
     setTipo(''); setAtSt(''); setNota(''); setFuDate(''); setSaveErr('')
@@ -176,6 +249,75 @@ export default function TimelinePage() {
           </div>
         </div>
 
+        <div className="tl-sec">
+          <div className="tl-sec-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            Contato direto
+            {metaSaving && <span style={{ fontSize: 10, color: 'var(--tx3)', fontWeight: 400 }}>salvando…</span>}
+          </div>
+
+          {(['contato_nome', 'contato_telefone', 'contato_email'] as (keyof Meta)[]).map(field => {
+            const labels: Record<keyof Meta, string> = { contato_nome: 'Nome', contato_telefone: 'Telefone', contato_email: 'E-mail' }
+            const placeholders: Record<keyof Meta, string> = { contato_nome: 'Adicionar nome…', contato_telefone: 'Adicionar telefone…', contato_email: 'Adicionar e-mail…' }
+            const isEditing = editField === field
+            return (
+              <div key={field} className="tl-f">
+                <div className="lbl">{labels[field]}</div>
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    className="meta-inp"
+                    value={editVal}
+                    onChange={e => setEditVal(editField === 'contato_telefone' ? maskPhone(e.target.value) : e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditField(null) }}
+                  />
+                ) : (
+                  <div
+                    className={`val meta-val${!meta[field] ? ' meta-empty' : ''}`}
+                    onClick={() => startEdit(field)}
+                    title="Clique para editar"
+                  >
+                    {meta[field] || placeholders[field]}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          <button
+            className="btn-enrich"
+            onClick={enrichCnpj}
+            disabled={enriching || !cnpj}
+            style={{ marginTop: 8 }}
+          >
+            {enriching
+              ? <><span className="spin-sm" />Consultando CNPJ…</>
+              : <>⚡ Enriquecer via CNPJ</>
+            }
+          </button>
+
+          {cnpjErr && (
+            <div className="enrich-err">{cnpjErr}</div>
+          )}
+
+          {cnpjData && (
+            <div className="enrich-box">
+              <div className="enrich-row"><span>Razão Social</span><span>{cnpjData.razao_social}</span></div>
+              <div className="enrich-row"><span>Atividade</span><span>{cnpjData.atividade}</span></div>
+              <div className="enrich-row"><span>Situação</span><span>{cnpjData.situacao}</span></div>
+              {cnpjData.municipio && <div className="enrich-row"><span>Cidade</span><span>{cnpjData.municipio} / {cnpjData.uf}</span></div>}
+              {cnpjData.rep_legal && <div className="enrich-row"><span>Rep. Legal</span><span>{cnpjData.rep_legal}</span></div>}
+              {cnpjData.telefone && <div className="enrich-row"><span>Telefone</span><span>{cnpjData.telefone}</span></div>}
+              {cnpjData.email && <div className="enrich-row"><span>E-mail</span><span>{cnpjData.email}</span></div>}
+              {(cnpjData.telefone || cnpjData.email) && (
+                <button className="btn-import" onClick={importCnpjContato}>
+                  ↓ Importar telefone / e-mail
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="tl-sec" style={{ borderBottom: 'none' }}>
           <div className="tl-sec-title">Contexto</div>
           <div className="tl-f">
@@ -200,6 +342,14 @@ export default function TimelinePage() {
         <div className="tl-section-hd">Histórico de contatos</div>
 
         <div className="tl-entries">
+          {loading && (
+            <div style={{ color: 'var(--tx3)', fontSize: 13, padding: '32px 0' }}>Carregando...</div>
+          )}
+          {!loading && atividades.length === 0 && (
+            <div style={{ color: 'var(--tx3)', fontSize: 13, padding: '32px 0' }}>
+              Nenhum contato registrado ainda. Use o botão abaixo para começar.
+            </div>
+          )}
           {atividades.map((at) => (
             <div key={at.id} className="tl-entry">
               <div className={`tl-node ${TIPO_NODE[at.tipo] ?? 'nd-call'}`}>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { DashboardProvider, useDashboard } from './context'
 
 const NAV = [
   {
@@ -9,7 +10,7 @@ const NAV = [
     label: 'Meus Clientes',
     icon: (
       <svg className="nav-ic" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z" />
+        <path d="M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H9z" />
       </svg>
     ),
   },
@@ -34,9 +35,10 @@ const NAV = [
   },
 ]
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
+  const { me }   = useDashboard()
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -44,78 +46,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="shell">
-      <nav className="sidebar">
-        {/* Logo */}
-        <div className="sb-logo">
-          <div className="sb-icon">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
-              <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18" />
-            </svg>
-          </div>
-          <span className="sb-name">Prospecção</span>
+    <nav className="sidebar">
+      <div className="sb-logo">
+        <div className="sb-icon">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+            <path d="M11 2L4 11H10L9 18L16 9H10L11 2Z" fill="#0d1e18" />
+          </svg>
         </div>
-
-        {/* Nav */}
-        {NAV.map(item => {
-          const active = item.href === '/dashboard'
-            ? pathname === '/dashboard'
-            : pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item${active ? ' on' : ''}`}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          )
-        })}
-
-        {/* Footer */}
-        <div className="sb-foot">
-          <div className="agent-row">
-            <div className="agent-av">GS</div>
-            <div>
-              <div className="agent-name">Guilherme S.</div>
-              <div className="agent-role">Agente comercial</div>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              marginTop: 12,
-              width: '100%',
-              padding: '7px 10px',
-              background: 'transparent',
-              border: '1px solid var(--border-s)',
-              borderRadius: 8,
-              color: 'var(--tx2)',
-              fontSize: 12,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--raised)'
-              e.currentTarget.style.color = 'var(--red)'
-              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--tx2)'
-              e.currentTarget.style.borderColor = 'var(--border-s)'
-            }}
-          >
-            Sair
-          </button>
-        </div>
-      </nav>
-
-      <div className="main">
-        {children}
+        <span className="sb-name">Prospecção</span>
       </div>
-    </div>
+
+      {NAV.map(item => {
+        const active = item.href === '/dashboard'
+          ? pathname === '/dashboard'
+          : pathname.startsWith(item.href)
+        return (
+          <Link key={item.href} href={item.href} className={`nav-item${active ? ' on' : ''}`}>
+            {item.icon}
+            {item.label}
+          </Link>
+        )
+      })}
+
+      <div className="sb-foot">
+        <div className="agent-row">
+          <div className="agent-av">{me?.initials ?? '…'}</div>
+          <div>
+            <div className="agent-name">{me?.nome ?? '—'}</div>
+            <div className="agent-role">{me?.cargo ?? 'Agente comercial'}</div>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          style={{
+            marginTop: 12, width: '100%', padding: '7px 10px',
+            background: 'transparent', border: '1px solid var(--border-s)',
+            borderRadius: 8, color: 'var(--tx2)', fontSize: 12,
+            cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--raised)'; e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tx2)'; e.currentTarget.style.borderColor = 'var(--border-s)' }}
+        >
+          Sair
+        </button>
+      </div>
+    </nav>
+  )
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <DashboardProvider>
+      <div className="shell">
+        <Sidebar />
+        <div className="main">{children}</div>
+      </div>
+    </DashboardProvider>
   )
 }
