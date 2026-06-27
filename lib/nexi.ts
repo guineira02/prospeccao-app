@@ -249,6 +249,28 @@ export interface NexiUser {
   cargo:   string
 }
 
+// Resolve a referência de Cargo (id do Bubble) → texto, via Data Type Cargos.
+// Cache em memória: o mesmo id se repete entre logins.
+const cargoCache = new Map<string, string>()
+async function resolverCargo(id: string): Promise<string> {
+  if (cargoCache.has(id)) return cargoCache.get(id)!
+  try {
+    const { base, key } = await nexiCfg()
+    const res = await fetch(`${base}/obj/cargos/${id}`, {
+      method:  'GET',
+      headers: nexiHeaders(key),
+      cache:   'no-store',
+    })
+    if (!res.ok) return ''
+    const data = await res.json()
+    const nome = String((data?.response as Record<string, unknown>)?.Nome ?? '').trim()
+    if (nome) cargoCache.set(id, nome)
+    return nome
+  } catch {
+    return ''
+  }
+}
+
 export async function nexiUserById(userId: string): Promise<NexiUser | null> {
   try {
     const { base, key } = await nexiCfg()
@@ -270,7 +292,10 @@ export async function nexiUserById(userId: string): Promise<NexiUser | null> {
     const nome =
       [u.Nome, u.Sobrenome].filter(Boolean).map(String).join(' ').trim() ||
       String(u['Nome completo'] ?? '').trim()
-    const cargo = String(u.Cargo ?? '').trim()
+    // Cargo na Data API vem como referência (id do Bubble, ex "123x456").
+    // Resolve no Data Type Cargos pra trazer o texto ("Marketing").
+    const cargoRaw = String(u.Cargo ?? '').trim()
+    const cargo = /^\d+x\d+$/.test(cargoRaw) ? await resolverCargo(cargoRaw) : cargoRaw
 
     return { user_id: String(u._id), email, nome, cargo }
   } catch {

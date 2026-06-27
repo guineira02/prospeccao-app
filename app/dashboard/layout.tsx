@@ -58,10 +58,10 @@ const NAV = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [agente, setAgente] = useState<{ nome: string; cargo: string } | null>(null)
+  const [agente, setAgente] = useState<{ nome: string; cargo: string; email: string } | null>(null)
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.ok ? r.json() : null).then(d => { if (d) setAgente({ nome: d.nome, cargo: d.cargo }) }).catch(() => {})
+    fetch('/api/me').then(r => r.ok ? r.json() : null).then(d => { if (d) setAgente({ nome: d.nome, cargo: d.cargo, email: d.email }) }).catch(() => {})
   }, [])
 
   const iniciais = (agente?.nome ?? 'Agente').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
@@ -153,7 +153,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agente?.nome ?? 'Agente'}</div>
-              <div style={{ fontSize: 11, color: '#81869e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agente?.cargo || 'Comercial'}</div>
+              <div style={{ fontSize: 11, color: '#81869e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agente?.cargo || agente?.email || 'Comercial'}</div>
             </div>
           </div>
           <button
