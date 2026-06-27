@@ -185,3 +185,95 @@ export async function nexiClienteRaw(userId: string, clienteId: string): Promise
   const lista = await fetchClientesRaw(userId)
   return lista.find(c => c._id === clienteId) ?? null
 }
+
+// ── OAuth2 (login via página da Nexi) ─────────────────────────
+// Config do OAuth: vem do cofre (app_secrets), com fallback pro env.
+// BUBBLE_CLIENT_ID / BUBBLE_CLIENT_SECRET são gerados no Bubble (ação manual).
+async function oauthCfg() {
+  return {
+    base:         await getSecret('NEXI_API_BASE'),
+    clientId:     await getSecret('BUBBLE_CLIENT_ID'),
+    clientSecret: await getSecret('BUBBLE_CLIENT_SECRET'),
+    appUrl:       await getSecret('APP_URL'),
+  }
+}
+
+// Monta a URL de autorização (pra onde o /api/auth/login redireciona).
+// Retorna null se o client ainda não foi configurado.
+export async function nexiOAuthAuthorizeUrl(state: string): Promise<string | null> {
+  const { base, clientId, appUrl } = await oauthCfg()
+  if (!base || !clientId || !appUrl) return null
+  const url = new URL(`${base}/oauth/authorize`)
+  url.searchParams.set('client_id', clientId)
+  url.searchParams.set('redirect_uri', `${appUrl}/api/auth/callback`)
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set('state', state)
+  return url.toString()
+}
+
+// Troca o authorization code por access_token + user_id (o _id do Bubble).
+export async function nexiOAuthToken(
+  code: string
+): Promise<{ accessToken: string; userId: string } | null> {
+  try {
+    const { base, clientId, clientSecret, appUrl } = await oauthCfg()
+    const res = await fetch(`${base}/oauth/access_token`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    new URLSearchParams({
+        grant_type:    'authorization_code',
+        code,
+        client_id:     clientId,
+        client_secret: clientSecret,
+        redirect_uri:  `${appUrl}/api/auth/callback`,
+      }).toString(),
+      cache:   'no-store',
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const accessToken = String(data?.access_token ?? data?.token ?? '')
+    const userId      = String(data?.uid ?? data?.user_id ?? data?.userId ?? '')
+    if (!accessToken || !userId) return null
+    return { accessToken, userId }
+  } catch {
+    return null
+  }
+}
+
+// ── Data API: dados do agente pelo _id (usa a API key estática) ──
+// No fluxo OAuth o token só devolve o uid; email/nome vêm daqui.
+export interface NexiUser {
+  user_id: string
+  email:   string
+  nome:    string
+  cargo:   string
+}
+
+export async function nexiUserById(userId: string): Promise<NexiUser | null> {
+  try {
+    const { base, key } = await nexiCfg()
+    const res = await fetch(`${base}/obj/user/${userId}`, {
+      method:  'GET',
+      headers: nexiHeaders(key),
+      cache:   'no-store',
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const u = (data?.response ?? {}) as Record<string, unknown>
+    if (!u._id) return null
+
+    // email mora em authentication.email.email
+    const auth = u.authentication as { email?: { email?: string } } | undefined
+    const email = String(auth?.email?.email ?? u.email ?? '').trim().toLowerCase()
+    if (!email) return null
+
+    const nome =
+      [u.Nome, u.Sobrenome].filter(Boolean).map(String).join(' ').trim() ||
+      String(u['Nome completo'] ?? '').trim()
+    const cargo = String(u.Cargo ?? '').trim()
+
+    return { user_id: String(u._id), email, nome, cargo }
+  } catch {
+    return null
+  }
+}
