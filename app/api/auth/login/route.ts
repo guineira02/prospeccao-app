@@ -1,70 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { createClient } from '@supabase/supabase-js'
-import { nexiLogin } from '@/lib/nexi'
+import { NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
+import { cookies } from 'next/headers'
+import { getSecret } from '@/lib/secrets'
+import { nexiOAuthAuthorizeUrl } from '@/lib/nexi'
 
-export async function POST(req: NextRequest) {
-  const { email, senha } = await req.json()
-  if (!email || !senha) {
-    return NextResponse.json({ error: 'Email e senha obrigatórios' }, { status: 400 })
+// Início do login OAuth: gera state anti-CSRF e manda o usuário
+// pra página de Login da Nexi (Bubble). A senha é digitada LÁ, não aqui.
+export async function GET() {
+  const appUrl = await getSecret('APP_URL')
+
+  const state = randomBytes(16).toString('hex')
+  const authorizeUrl = await nexiOAuthAuthorizeUrl(state)
+
+  // Client OAuth ainda não configurado no Bubble → erro claro.
+  if (!authorizeUrl) {
+    return NextResponse.redirect(`${appUrl || ''}/?erro=oauth_config`)
   }
 
-  // 1. Valida credenciais na Nexi (login_mobile)
-  const nexi = await nexiLogin(email, senha)
-  if (!nexi) {
-    return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
-  }
-
-  // 2. Abre/cria a sessão correspondente no Supabase.
-  //    Senha do Supabase = hash estável do user_id Nexi (o agente nunca a digita;
-  //    a verdade da autenticação é a Nexi, o Supabase só guarda a sessão + RLS).
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  )
-  const admin = getSupabaseAdmin()
-
-  const emailNorm = String(email).trim().toLowerCase()
-  const supaPass  = `nexi:${nexi.user_id}`
-  const metadata  = { nome: nexi.nome, cargo: nexi.cargo, nexi_id: nexi.user_id }
-
-  // Procura o shadow user existente por e-mail.
-  const { data: list } = await admin.auth.admin.listUsers()
-  const existente = list?.users?.find(u => u.email?.toLowerCase() === emailNorm)
-
-  if (existente) {
-    // reseta a senha shadow + atualiza metadata (a verdade é a Nexi)
-    await admin.auth.admin.updateUserById(existente.id, { password: supaPass, user_metadata: metadata })
-  } else {
-    await admin.auth.admin.createUser({ email: emailNorm, password: supaPass, email_confirm: true, user_metadata: metadata })
-  }
-
-  const { data: signIn } = await supabase.auth.signInWithPassword({ email: emailNorm, password: supaPass })
-  const session = signIn?.session
-  if (!session) {
-    return NextResponse.json({ error: 'Falha ao abrir sessão' }, { status: 500 })
-  }
-
-  const res = NextResponse.json({
-    ok: true,
-    agente: { nome: nexi.nome, cargo: nexi.cargo },
-  })
-
-  res.cookies.set('sb-access-token', session.access_token, {
+  const jar = await cookies()
+  jar.set('oauth_state', state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure:   process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 8,
-    path: '/',
-  })
-  res.cookies.set('sb-refresh-token', session.refresh_token!, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
+    maxAge:   600,
+    path:     '/',
   })
 
-  return res
+  return NextResponse.redirect(authorizeUrl)
 }
