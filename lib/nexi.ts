@@ -186,6 +186,77 @@ export async function nexiClienteRaw(userId: string, clienteId: string): Promise
   return lista.find(c => c._id === clienteId) ?? null
 }
 
+// ── Estudo de Viabilidade (arquivo da Tarefa_Missao) ──────────
+// A Tarefa_missao da etapa "Estudo de viabilidade" guarda o arquivo no campo
+// `arquivos` (lista). A tarefa NÃO referencia o Cliente direto — o vínculo é:
+//   cliente_id → Ramificada (Cliente = cliente_id) → Tarefa_missao (Ramificada = essa, Titulo "viabilidade") → arquivos
+export interface EstudoArquivo {
+  nome: string
+  url:  string   // absoluta (https:)
+  tipo: 'pdf' | 'imagem' | 'outro'
+}
+
+function bubbleConstraints(arr: Record<string, string>[]): string {
+  return encodeURIComponent(JSON.stringify(arr))
+}
+
+function tipoArquivo(url: string): EstudoArquivo['tipo'] {
+  const u = url.toLowerCase()
+  if (u.includes('.pdf')) return 'pdf'
+  if (/\.(png|jpe?g|webp|gif)/.test(u)) return 'imagem'
+  return 'outro'
+}
+
+function nomeArquivo(url: string): string {
+  try {
+    const last = url.split('/').pop() ?? 'arquivo'
+    return decodeURIComponent(last) || 'arquivo'
+  } catch { return 'arquivo' }
+}
+
+async function bubbleGet(base: string, key: string, slug: string, qs: string) {
+  const res = await fetch(`${base}/obj/${slug}?${qs}`, {
+    method: 'GET', headers: nexiHeaders(key), cache: 'no-store',
+  })
+  if (!res.ok) return [] as Record<string, unknown>[]
+  const data = await res.json()
+  return (data?.response?.results ?? []) as Record<string, unknown>[]
+}
+
+export async function nexiEstudoViabilidade(clienteId: string): Promise<EstudoArquivo[]> {
+  try {
+    const { base, key } = await nexiCfg()
+    if (!base || !key || !clienteId) return []
+
+    // 1. ramificadas (instâncias) do cliente
+    const rcons = bubbleConstraints([{ key: 'Cliente', constraint_type: 'equals', value: clienteId }])
+    const ramificadas = await bubbleGet(base, key, 'ramificada', `limit=50&constraints=${rcons}`)
+    const ramIds = ramificadas.map(r => String(r._id)).filter(Boolean)
+    if (ramIds.length === 0) return []
+
+    // 2. tarefas de "viabilidade" dentro dessas ramificadas → coleta arquivos
+    const urls = new Set<string>()
+    for (const rid of ramIds) {
+      const tcons = bubbleConstraints([
+        { key: 'Ramificada', constraint_type: 'equals', value: rid },
+        { key: 'Titulo', constraint_type: 'text contains', value: 'viabilidade' },
+      ])
+      const tarefas = await bubbleGet(base, key, 'Tarefa_missao', `limit=20&constraints=${tcons}`)
+      for (const t of tarefas) {
+        const arr = Array.isArray(t.arquivos) ? (t.arquivos as string[]) : []
+        for (const a of arr) if (a) urls.add(String(a))
+      }
+    }
+
+    return [...urls].map(raw => {
+      const url = raw.startsWith('//') ? `https:${raw}` : raw
+      return { nome: nomeArquivo(url), url, tipo: tipoArquivo(url) }
+    })
+  } catch {
+    return []
+  }
+}
+
 // ── OAuth2 (login via página da Nexi) ─────────────────────────
 // Config do OAuth: vem do cofre (app_secrets), com fallback pro env.
 // BUBBLE_CLIENT_ID / BUBBLE_CLIENT_SECRET são gerados no Bubble (ação manual).

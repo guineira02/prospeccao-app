@@ -16,6 +16,17 @@ const NAV = [
     ),
   },
   {
+    href: '/dashboard/radar',
+    label: 'Radar de Risco',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 15, height: 15 }}>
+        <path d="M8 1.5l6.5 11.5H1.5z" />
+        <path d="M8 6.5v3" />
+        <circle cx="8" cy="11.3" r="0.4" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/atender',
     label: 'Atender',
     icon: (
