@@ -158,18 +158,48 @@ export async function nexiAtualizarCliente(
   }
 }
 
+// wf/clientes_mobile tem limite de 50 hardcoded no workflow (confirmado —
+// nenhum parâmetro de paginação muda o resultado). Data API (/obj/cliente)
+// não tem esse teto — busca a 1a página, descobre quanto falta (`remaining`)
+// e paraleliza o resto. Cache de 60s por agente evita rebuscar a carteira
+// inteira a cada clique (checagem de dono, registrar contato, etc. batem
+// aqui várias vezes seguidas na mesma sessão).
+const clientesCache = new Map<string, { data: NexiClienteRaw[]; loadedAt: number }>()
+const CLIENTES_TTL = 60_000
+const PAGE_SIZE = 100
+
 async function fetchClientesRaw(userId: string): Promise<NexiClienteRaw[]> {
+  const cached = clientesCache.get(userId)
+  if (cached && Date.now() - cached.loadedAt < CLIENTES_TTL) return cached.data
+
   try {
     const { base, key } = await nexiCfg()
-    const res = await fetch(`${base}/wf/clientes_mobile`, {
-      method:  'POST',
-      headers: nexiHeaders(key),
-      body:    JSON.stringify({ user_id: userId }),
-      cache:   'no-store',
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data?.response?.clientes ?? []
+    const cons = bubbleConstraints([{ key: 'Responsavel', constraint_type: 'equals', value: userId }])
+
+    const buscarPagina = async (cursor: number) => {
+      const res = await fetch(`${base}/obj/cliente?constraints=${cons}&limit=${PAGE_SIZE}&cursor=${cursor}`, {
+        headers: nexiHeaders(key), cache: 'no-store',
+      })
+      if (!res.ok) return { results: [] as NexiClienteRaw[], remaining: 0 }
+      const data = await res.json()
+      return {
+        results:   (data?.response?.results ?? []) as NexiClienteRaw[],
+        remaining: (data?.response?.remaining ?? 0) as number,
+      }
+    }
+
+    const primeira = await buscarPagina(0)
+    const lista = [...primeira.results]
+
+    if (primeira.remaining > 0) {
+      const cursores: number[] = []
+      for (let c = PAGE_SIZE; c < PAGE_SIZE + primeira.remaining; c += PAGE_SIZE) cursores.push(c)
+      const paginas = await Promise.all(cursores.map(c => buscarPagina(c)))
+      for (const p of paginas) lista.push(...p.results)
+    }
+
+    clientesCache.set(userId, { data: lista, loadedAt: Date.now() })
+    return lista
   } catch {
     return []
   }
@@ -178,6 +208,48 @@ async function fetchClientesRaw(userId: string): Promise<NexiClienteRaw[]> {
 export async function nexiClientes(userId: string): Promise<Cliente[]> {
   const lista = await fetchClientesRaw(userId)
   return lista.map(normalizeCliente)
+}
+
+// Checagem de dono pra UM cliente — 1 chamada direta ao Bubble, independe
+// do tamanho da carteira. Usar isso em vez de nexiClientes(...).some(...)
+// sempre que só precisar saber se ESSE clienteId pertence ao agente.
+export async function nexiClientePertence(userId: string, clienteId: string): Promise<boolean> {
+  try {
+    const { base, key } = await nexiCfg()
+    const cons = bubbleConstraints([
+      { key: 'Responsavel', constraint_type: 'equals', value: userId },
+      { key: '_id',         constraint_type: 'equals', value: clienteId },
+    ])
+    const res = await fetch(`${base}/obj/cliente?constraints=${cons}&limit=1`, {
+      headers: nexiHeaders(key), cache: 'no-store',
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    return ((data?.response?.results ?? []) as unknown[]).length > 0
+  } catch {
+    return false
+  }
+}
+
+// Mesma ideia, mas pra várias de uma vez (ações em lote) — 1 chamada só.
+export async function nexiClientesPertencem(userId: string, clienteIds: string[]): Promise<Set<string>> {
+  if (clienteIds.length === 0) return new Set()
+  try {
+    const { base, key } = await nexiCfg()
+    const cons = bubbleConstraints([
+      { key: 'Responsavel', constraint_type: 'equals', value: userId },
+      { key: '_id',         constraint_type: 'in',     value: clienteIds },
+    ])
+    const res = await fetch(`${base}/obj/cliente?constraints=${cons}&limit=${clienteIds.length}`, {
+      headers: nexiHeaders(key), cache: 'no-store',
+    })
+    if (!res.ok) return new Set()
+    const data = await res.json()
+    const results = (data?.response?.results ?? []) as { _id: string }[]
+    return new Set(results.map(r => String(r._id)))
+  } catch {
+    return new Set()
+  }
 }
 
 // Retorna o objeto cru de UM cliente (pra preservar campos no enriquecimento).

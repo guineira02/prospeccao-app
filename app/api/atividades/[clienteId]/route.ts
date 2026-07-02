@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForUser } from '@/lib/supabase-server'
-import { nexiClientes, nexiHistoricoComentarios } from '@/lib/nexi'
+import { nexiClientePertence, nexiHistoricoComentarios } from '@/lib/nexi'
 
 export async function GET(
   req: NextRequest,
@@ -17,8 +17,7 @@ export async function GET(
 
   const nexiId = user.user_metadata?.nexi_id as string | undefined
   if (!nexiId) return NextResponse.json({ error: 'Nexi ID não encontrado' }, { status: 400 })
-  const clientesDoAgente = await nexiClientes(nexiId)
-  if (!clientesDoAgente.some(c => c.id === clienteId)) {
+  if (!(await nexiClientePertence(nexiId, clienteId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

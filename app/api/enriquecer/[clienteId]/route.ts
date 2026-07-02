@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { nexiAtualizarCliente, nexiClienteRaw, nexiClientes, type EnriquecimentoNexi } from '@/lib/nexi'
+import { nexiAtualizarCliente, nexiClienteRaw, nexiClientePertence, type EnriquecimentoNexi } from '@/lib/nexi'
 
 const CNPJA_PROXY = 'https://primary-production-84466.up.railway.app/webhook/cnpja-proxy'
 
@@ -20,8 +20,7 @@ export async function POST(
 
   const { clienteId } = await params
 
-  const clientesDoAgente = await nexiClientes(nexiId)
-  if (!clientesDoAgente.some(c => c.id === clienteId)) {
+  if (!(await nexiClientePertence(nexiId, clienteId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
