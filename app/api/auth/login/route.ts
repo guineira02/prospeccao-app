@@ -21,7 +21,7 @@ export async function GET() {
   jar.set('oauth_state', state, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     maxAge:   600,
     path:     '/',
   })

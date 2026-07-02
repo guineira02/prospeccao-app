@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
+import { createHmac } from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { getSecret } from '@/lib/secrets'
 import { nexiOAuthToken, nexiUserById } from '@/lib/nexi'
+
+// Senha shadow derivada por HMAC — nunca previsível a partir do user_id da Nexi
+// (que não é secreto: aparece em respostas de API e no user_metadata).
+async function derivarSenhaShadow(userId: string): Promise<string> {
+  const secret = await getSecret('SHADOW_PASSWORD_SECRET')
+  if (!secret) throw new Error('SHADOW_PASSWORD_SECRET não configurado')
+  return createHmac('sha256', secret).update(userId).digest('hex')
+}
 
 // Retorno do OAuth da Nexi. Valida state, troca code por user_id,
 // busca email/nome e abre a sessão Supabase (shadow user) — mesma
@@ -42,10 +51,12 @@ export async function GET(req: NextRequest) {
   const admin = getSupabaseAdmin()
 
   const emailNorm = user.email
-  const supaPass  = `nexi:${user.user_id}`
+  const supaPass  = await derivarSenhaShadow(user.user_id)
   const metadata  = { nome: user.nome, cargo: user.cargo, nexi_id: user.user_id }
 
-  const { data: list } = await admin.auth.admin.listUsers()
+  // perPage alto — listUsers pagina em 50 por padrão; com o default, agente
+  // fora da primeira página nunca é encontrado e vira createUser duplicado.
+  const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 })
   const existente = list?.users?.find(u => u.email?.toLowerCase() === emailNorm)
 
   if (existente) {

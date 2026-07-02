@@ -28,7 +28,7 @@ function montarMensagem(nome: string, itens: { nome: string; uf: string; diasAtr
 export async function POST(req: NextRequest) {
   const secret = await getSecret('CRON_SECRET')
   const enviado = req.headers.get('x-cron-secret') || new URL(req.url).searchParams.get('secret')
-  if (secret && enviado !== secret) {
+  if (!secret || enviado !== secret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -124,7 +124,5 @@ export async function POST(req: NextRequest) {
     agentes_com_atraso: payload.length,
     disparados,
     erros: erros.length ? erros : undefined,
-    // payload completo (útil pra debug / se o n8n preferir puxar e iterar)
-    agentes: payload,
   })
 }

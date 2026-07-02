@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { nexiAtualizarCliente, nexiClienteRaw, type EnriquecimentoNexi } from '@/lib/nexi'
+import { nexiAtualizarCliente, nexiClienteRaw, nexiClientes, type EnriquecimentoNexi } from '@/lib/nexi'
 
 const CNPJA_PROXY = 'https://primary-production-84466.up.railway.app/webhook/cnpja-proxy'
 
@@ -19,6 +19,12 @@ export async function POST(
   if (!nexiId) return NextResponse.json({ error: 'Nexi ID não encontrado' }, { status: 400 })
 
   const { clienteId } = await params
+
+  const clientesDoAgente = await nexiClientes(nexiId)
+  if (!clientesDoAgente.some(c => c.id === clienteId)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { cnpj } = await req.json()
   const cnpjLimpo = String(cnpj ?? '').replace(/\D/g, '')
   if (cnpjLimpo.length !== 14) {

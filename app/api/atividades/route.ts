@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForUser } from '@/lib/supabase-server'
+import { nexiClientes } from '@/lib/nexi'
 import { TIPOS, STATUS } from '@/lib/constants'
 
 export async function POST(req: NextRequest) {
@@ -28,6 +29,14 @@ export async function POST(req: NextRequest) {
   }
   if (!STATUS.includes(status)) {
     return NextResponse.json({ error: `status inválido. Aceitos: ${STATUS.join(', ')}` }, { status: 400 })
+  }
+
+  const nexiId = user.user_metadata?.nexi_id as string | undefined
+  if (!nexiId) return NextResponse.json({ error: 'Nexi ID não encontrado' }, { status: 400 })
+  const clientesDoAgente = new Set((await nexiClientes(nexiId)).map(c => c.id))
+  const idsInvalidos = ids.filter(id => !clientesDoAgente.has(id))
+  if (idsInvalidos.length > 0) {
+    return NextResponse.json({ error: 'Cliente(s) não pertencem ao agente' }, { status: 403 })
   }
 
   const rows = ids.map(cliente_id => ({
