@@ -10,27 +10,53 @@ interface Analise {
   abordagem: string[]
   script: string
 }
+interface Briefing { id: string; analise: Analise; created_at: string }
 
+const MAX_BRIEFINGS_UI = 2
 const URG_COLOR: Record<string, string> = { alta: '#ef4444', media: '#fbbf24', baixa: '#09bc8a' }
 const CANAL_ICON: Record<string, string> = { 'Ligação': '📞', 'WhatsApp': '💬', 'E-mail': '✉', 'Reunião': '👥' }
 
-export function AnalisePanel({ clienteId, cliente, onClose }: { clienteId: string; cliente: unknown; onClose: () => void }) {
-  const [analise, setAnalise] = useState<Analise | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro]       = useState('')
-  const [copied, setCopied]   = useState(false)
+function fmtGerado(iso: string) {
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 
-  // carrega na montagem
+export function AnalisePanel({ clienteId, cliente, onClose }: { clienteId: string; cliente: unknown; onClose: () => void }) {
+  const [briefings, setBriefings] = useState<Briefing[]>([])
+  const [restantes, setRestantes] = useState(2)
+  const [verIndex, setVerIndex]   = useState(0)
+  const [loading, setLoading]     = useState(true)
+  const [gerando, setGerando]     = useState(false)
+  const [erro, setErro]           = useState('')
+  const [copied, setCopied]       = useState(false)
+
+  // carrega o que já foi gerado — sem chamar IA
   useEffect(() => {
+    fetch(`/api/analise/${clienteId}`)
+      .then(r => r.json())
+      .then(d => { if (d.error) setErro(d.error); else { setBriefings(d.briefings ?? []); setRestantes(d.restantes ?? 0) } })
+      .catch(() => setErro('Falha ao carregar análises'))
+      .finally(() => setLoading(false))
+  }, [clienteId])
+
+  function gerar() {
+    setGerando(true); setErro('')
     fetch(`/api/analise/${clienteId}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cliente }),
     })
       .then(r => r.json())
-      .then(d => { if (d.error) setErro(d.error); else setAnalise(d.analise) })
+      .then(d => {
+        if (d.error) { setErro(d.error); return }
+        setBriefings(prev => [{ id: `novo-${prev.length}`, analise: d.analise, created_at: new Date().toISOString() }, ...prev])
+        setRestantes(d.restantes ?? 0)
+        setVerIndex(0)
+      })
       .catch(() => setErro('Falha ao gerar análise'))
-      .finally(() => setLoading(false))
-  }, [clienteId, cliente])
+      .finally(() => setGerando(false))
+  }
+
+  const atual = briefings[verIndex]
+  const analise = atual?.analise ?? null
 
   function copyScript() {
     if (!analise) return
@@ -54,16 +80,36 @@ export function AnalisePanel({ clienteId, cliente, onClose }: { clienteId: strin
         {loading && (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#81869e', fontSize: 13 }}>
             <div style={{ fontSize: 26, marginBottom: 12, animation: 'pulse 1.4s ease-in-out infinite' }}>✦</div>
-            Lendo o histórico e o método Tendência...
+            Carregando análises...
           </div>
         )}
 
         {!loading && erro && (
-          <div style={{ padding: '1rem', background: 'rgba(239,68,68,0.08)', borderRadius: 10, color: '#ef4444', fontSize: 13 }}>{erro}</div>
+          <div style={{ marginBottom: 14, padding: '1rem', background: 'rgba(239,68,68,0.08)', borderRadius: 10, color: '#ef4444', fontSize: 13 }}>{erro}</div>
+        )}
+
+        {!loading && briefings.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+            <div style={{ fontSize: 26, marginBottom: 12 }}>✦</div>
+            <p style={{ color: '#81869e', fontSize: 12.5, marginBottom: 16, lineHeight: 1.5 }}>Nenhuma análise gerada ainda pra esse cliente. Cada geração consome IA — use quando fizer diferença.</p>
+            <button onClick={gerar} disabled={gerando} style={{ background: 'rgba(9,188,138,0.12)', border: '1px solid rgba(9,188,138,0.3)', borderRadius: 9, padding: '10px 18px', color: '#09bc8a', fontSize: 12.5, cursor: gerando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>
+              {gerando ? 'Gerando...' : `✦ Gerar Análise de IA (${restantes} disponíve${restantes === 1 ? 'l' : 'is'})`}
+            </button>
+          </div>
         )}
 
         {analise && (
           <div style={{ animation: 'fadeUp 0.4s ease both' }}>
+            {/* meta: data + alternar entre as 2 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 10.5, color: '#5a5f73' }}>Gerada em {fmtGerado(atual.created_at)}</span>
+              {briefings.length > 1 && (
+                <button onClick={() => setVerIndex(i => (i + 1) % briefings.length)} style={{ background: 'none', border: 'none', color: '#81869e', fontSize: 10.5, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+                  ver {verIndex === 0 ? 'anterior' : 'mais recente'}
+                </button>
+              )}
+            </div>
+
             {/* urgência + canal */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, color: URG_COLOR[analise.urgencia], background: `${URG_COLOR[analise.urgencia]}1c`, border: `1px solid ${URG_COLOR[analise.urgencia]}40` }}>
@@ -109,9 +155,19 @@ export function AnalisePanel({ clienteId, cliente, onClose }: { clienteId: strin
               </div>
             </Section>
 
-            <div style={{ fontSize: 10.5, color: '#5a5f73', marginTop: 16, textAlign: 'center' }}>
+            <div style={{ fontSize: 10.5, color: '#5a5f73', marginTop: 16, marginBottom: 14, textAlign: 'center' }}>
               Gerado por IA · método consultivo Tendência Energia
             </div>
+
+            {restantes > 0 ? (
+              <button onClick={gerar} disabled={gerando} style={{ width: '100%', padding: '9px', background: 'transparent', border: '1px solid #353740', borderRadius: 9, color: '#81869e', fontSize: 12, cursor: gerando ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                {gerando ? 'Gerando...' : `Gerar nova análise (restam ${restantes})`}
+              </button>
+            ) : (
+              <div style={{ textAlign: 'center', fontSize: 11, color: '#81869e', padding: '8px', background: 'rgba(129,134,158,0.08)', borderRadius: 9 }}>
+                Limite de {MAX_BRIEFINGS_UI} análises por cliente — use com cautela, cada uma consome IA.
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ export const TIPOS = [
   'Estudo Apresentado',
   'Proposta',
   'Declínio',
+  'Nota',
 ] as const
 export type Tipo = typeof TIPOS[number]
 
@@ -15,8 +16,13 @@ export const STATUS = [
   'Não atendeu',
   'Agendou retorno',
   'Cliente recusou',
+  'Histórico',
 ] as const
 export type StatusAtividade = typeof STATUS[number]
+
+// 'Histórico' marca registro importado da Nexi (sem desfecho de ligação) —
+// não deve aparecer como opção no modal de registro manual.
+export const STATUS_MANUAL = STATUS.filter(s => s !== 'Histórico')
 
 export const TIPO_ICON: Record<string, string> = {
   'Ligação':            '📞',
@@ -26,6 +32,7 @@ export const TIPO_ICON: Record<string, string> = {
   'Estudo Apresentado': '📊',
   'Proposta':           '📄',
   'Declínio':           '✕',
+  'Nota':               '📝',
 }
 
 export const TIPO_COLOR: Record<string, string> = {
@@ -36,6 +43,7 @@ export const TIPO_COLOR: Record<string, string> = {
   'Estudo Apresentado': '#a78bfa',
   'Proposta':           '#34d399',
   'Declínio':           '#ef4444',
+  'Nota':               '#81869e',
 }
 
 export const STATUS_COLOR: Record<string, string> = {
@@ -43,6 +51,7 @@ export const STATUS_COLOR: Record<string, string> = {
   'Não atendeu':     '#fbbf24',
   'Agendou retorno': '#60a5fa',
   'Cliente recusou': '#ef4444',
+  'Histórico':       '#81869e',
 }
 
 // ── Estágio do pipeline (DERIVADO da última atividade) ────────

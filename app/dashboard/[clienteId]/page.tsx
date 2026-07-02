@@ -7,13 +7,14 @@ import { AnalisePanel } from '@/app/components/AnalisePanel'
 import { DateBR } from '@/app/components/DateBR'
 import { WhatsIcon } from '@/app/components/WhatsIcon'
 import {
-  TIPOS, STATUS, TIPO_ICON, TIPO_COLOR, STATUS_COLOR,
+  TIPOS, STATUS_MANUAL, TIPO_ICON, TIPO_COLOR, STATUS_COLOR,
   ESTAGIO_COLOR, derivarEstagio, proximoFollowUp, mesesAteVencimento, whatsappUrl, type Estagio,
 } from '@/lib/constants'
 
 interface Atividade {
   id: string; tipo: string; status: string
   comentario: string | null; follow_up_data: string | null; created_at: string
+  origem?: string
 }
 interface Cliente {
   id: string; nome: string; cnpj: string; uf: string; regiao: string
@@ -263,7 +264,11 @@ export default function TimelinePage() {
                 <div style={{ flex: 1, background: '#1e1f24', border: '1px solid #353740', borderRadius: 12, padding: '13px 15px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: TIPO_COLOR[at.tipo] ?? '#fff' }}>{at.tipo}</span>
-                    <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 7px', borderRadius: 20, background: `${STATUS_COLOR[at.status] ?? '#81869e'}1c`, color: STATUS_COLOR[at.status] ?? '#81869e' }}>{at.status}</span>
+                    {at.origem === 'nexi' ? (
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: 'rgba(129,134,158,0.15)', color: '#81869e' }}>📥 Nexi</span>
+                    ) : (
+                      <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 7px', borderRadius: 20, background: `${STATUS_COLOR[at.status] ?? '#81869e'}1c`, color: STATUS_COLOR[at.status] ?? '#81869e' }}>{at.status}</span>
+                    )}
                     <span style={{ marginLeft: 'auto', fontSize: 11, color: '#81869e' }}>{fmtDate(at.created_at)}</span>
                   </div>
                   {at.comentario && <p style={{ fontSize: 13, color: '#c8cad0', lineHeight: 1.5, margin: 0 }}>{at.comentario}</p>}
@@ -301,7 +306,7 @@ export default function TimelinePage() {
 
             <label style={lbl}>Status</label>
             <div style={{ marginBottom: 16 }}>
-              <CustomSelect value={atStatus} onChange={setAtStatus} options={[...STATUS]} placeholder="Selecionar status..." />
+              <CustomSelect value={atStatus} onChange={setAtStatus} options={[...STATUS_MANUAL]} placeholder="Selecionar status..." />
             </div>
 
             <label style={lbl}>Comentário <span style={{ fontWeight: 400, textTransform: 'none' }}>(opcional)</span></label>

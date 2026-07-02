@@ -14,6 +14,36 @@ function fmtBR(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+// Teto de análises por cliente — cada uma consome Anthropic, não é grátis.
+// Guardadas em pt_briefings pra reabrir o painel não custar de novo.
+const MAX_BRIEFINGS = 2
+
+// Lista as análises já geradas pra esse cliente, sem chamar IA — usado no
+// mount dos painéis (AnalisePanel/ClienteDossie) em vez do POST automático.
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ clienteId: string }> }
+) {
+  const token = req.cookies.get('sb-access-token')?.value
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const supabase = getSupabaseForUser(token)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { clienteId } = await params
+
+  const { data, error } = await supabase
+    .from('pt_briefings')
+    .select('id, analise, created_at')
+    .eq('cliente_id', clienteId)
+    .order('created_at', { ascending: false })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const briefings = data ?? []
+  return NextResponse.json({ briefings, restantes: Math.max(0, MAX_BRIEFINGS - briefings.length) })
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ clienteId: string }> }
@@ -32,6 +62,14 @@ export async function POST(
   const clientesDoAgente = await nexiClientes(nexiId)
   if (!clientesDoAgente.some(c => c.id === clienteId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { count: jaGeradas } = await supabase
+    .from('pt_briefings')
+    .select('id', { count: 'exact', head: true })
+    .eq('cliente_id', clienteId)
+  if ((jaGeradas ?? 0) >= MAX_BRIEFINGS) {
+    return NextResponse.json({ error: `Limite de ${MAX_BRIEFINGS} análises por cliente atingido` }, { status: 403 })
   }
 
   const body = await req.json().catch(() => ({}))
@@ -105,7 +143,13 @@ Analise este cliente e sugira a próxima abordagem. Seja específico ao que real
     const raw = textBlock?.text ?? '{}'
     const analise = JSON.parse(raw)
 
-    return NextResponse.json({ analise, meta: { diasOcioso, totalAtividades: atividades.length } })
+    await supabase.from('pt_briefings').insert({ agente_id: user.id, cliente_id: clienteId, analise })
+
+    return NextResponse.json({
+      analise,
+      meta: { diasOcioso, totalAtividades: atividades.length },
+      restantes: Math.max(0, MAX_BRIEFINGS - (jaGeradas ?? 0) - 1),
+    })
   } catch (e) {
     const detail = e instanceof Error ? e.message : 'erro'
     return NextResponse.json({ error: `Falha na análise: ${detail}` }, { status: 500 })

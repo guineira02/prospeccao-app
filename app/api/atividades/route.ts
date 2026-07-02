@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForUser } from '@/lib/supabase-server'
 import { nexiClientes } from '@/lib/nexi'
-import { TIPOS, STATUS } from '@/lib/constants'
+import { TIPOS, STATUS_MANUAL } from '@/lib/constants'
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('sb-access-token')?.value
@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
   if (!TIPOS.includes(tipo)) {
     return NextResponse.json({ error: `tipo inválido. Aceitos: ${TIPOS.join(', ')}` }, { status: 400 })
   }
-  if (!STATUS.includes(status)) {
-    return NextResponse.json({ error: `status inválido. Aceitos: ${STATUS.join(', ')}` }, { status: 400 })
+  if (!STATUS_MANUAL.includes(status)) {
+    return NextResponse.json({ error: `status inválido. Aceitos: ${STATUS_MANUAL.join(', ')}` }, { status: 400 })
   }
 
   const nexiId = user.user_metadata?.nexi_id as string | undefined

@@ -196,7 +196,7 @@ export interface EstudoArquivo {
   tipo: 'pdf' | 'imagem' | 'outro'
 }
 
-function bubbleConstraints(arr: Record<string, string>[]): string {
+function bubbleConstraints(arr: Record<string, string | string[]>[]): string {
   return encodeURIComponent(JSON.stringify(arr))
 }
 
@@ -252,6 +252,55 @@ export async function nexiEstudoViabilidade(clienteId: string): Promise<EstudoAr
       const url = raw.startsWith('//') ? `https:${raw}` : raw
       return { nome: nomeArquivo(url), url, tipo: tipoArquivo(url) }
     })
+  } catch {
+    return []
+  }
+}
+
+// ── Histórico de Comentário (timeline importada da Nexi) ──────
+// Comentario não referencia Cliente direto — só existe em registros bem
+// recentes (~jul/2026), vazio em qualquer coisa mais antiga. O vínculo
+// confiável em todo o histórico é: Comentario."Tarefa Pai" → Tarefa_missao
+// → Tarefa_missao."Ramificada" → Ramificada."Cliente" (testado com dados
+// reais de 2024). Mesma cadeia de nexiEstudoViabilidade, só que de trás
+// pra frente e coletando Comentario em vez de arquivo.
+export interface ComentarioHistorico {
+  id:       string
+  texto:    string
+  criadoEm: string  // ISO
+  autorId:  string
+}
+
+export async function nexiHistoricoComentarios(clienteId: string): Promise<ComentarioHistorico[]> {
+  try {
+    const { base, key } = await nexiCfg()
+    if (!base || !key || !clienteId) return []
+
+    // 1. ramificadas do cliente
+    const rcons = bubbleConstraints([{ key: 'Cliente', constraint_type: 'equals', value: clienteId }])
+    const ramificadas = await bubbleGet(base, key, 'ramificada', `limit=50&constraints=${rcons}`)
+    const ramIds = ramificadas.map(r => String(r._id)).filter(Boolean)
+    if (ramIds.length === 0) return []
+
+    // 2. tarefas dessas ramificadas
+    const tcons = bubbleConstraints([{ key: 'Ramificada', constraint_type: 'in', value: ramIds }])
+    const tarefas = await bubbleGet(base, key, 'Tarefa_missao', `limit=200&constraints=${tcons}`)
+    const tarefaIds = tarefas.map(t => String(t._id)).filter(Boolean)
+    if (tarefaIds.length === 0) return []
+
+    // 3. comentários dessas tarefas
+    const ccons = bubbleConstraints([{ key: 'Tarefa Pai', constraint_type: 'in', value: tarefaIds }])
+    const comentarios = await bubbleGet(base, key, 'comentario', `limit=500&constraints=${ccons}`)
+
+    return comentarios
+      .filter(c => typeof c.Texto === 'string' && c.Texto.trim())
+      .map(c => ({
+        id:       String(c._id),
+        texto:    String(c.Texto).trim(),
+        criadoEm: String(c['Created Date'] ?? new Date().toISOString()),
+        autorId:  String(c.UserComment ?? c['Created By'] ?? ''),
+      }))
+      .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm))
   } catch {
     return []
   }
