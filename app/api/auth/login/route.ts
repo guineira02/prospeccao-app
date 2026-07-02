@@ -18,10 +18,13 @@ export async function GET() {
   }
 
   const jar = await cookies()
+  // Precisa ser 'lax' — a Bubble redireciona de volta pro callback como
+  // navegação top-level cross-site. 'strict' bloqueia o cookie nesse
+  // cenário e derruba o state check (visto em produção: "link inválido").
   jar.set('oauth_state', state, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge:   600,
     path:     '/',
   })
